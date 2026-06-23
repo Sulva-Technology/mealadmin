@@ -1,0 +1,4 @@
+# Meal Direct Rider — gated portal, not for indexing.
+# To allow indexing: set "Allow: /" and switch the robots meta in index.html.
+User-agent: *
+Disallow: /
