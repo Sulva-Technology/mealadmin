@@ -94,6 +94,52 @@ export interface Campus {
   updatedAt?: string;
 }
 
+// ---- Zones / Locations / Delivery slots (campus configuration) -------------
+
+export interface Zone {
+  id: string;
+  campusId: string;
+  name: string;
+  code: string;
+  active: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const LOCATION_TYPES = ['department', 'hostel'] as const;
+export type LocationType = (typeof LOCATION_TYPES)[number];
+
+export interface CampusLocation {
+  id: string;
+  campusId: string;
+  zoneId: string;
+  zoneName: string;
+  zoneCode: string;
+  name: string;
+  slug: string;
+  type: LocationType;
+  deliveryInstructions: string | null;
+  active: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeliverySlot {
+  id: string;
+  campusId: string;
+  name: string;
+  deliveryTime: string;
+  cutoffMinutes: number;
+  active: boolean;
+  displayOrder: number;
+  orderingCutoffAt: string | null;
+  acceptingOrders: boolean | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ---- Orders ----------------------------------------------------------------
 
 export interface OrderListItem {

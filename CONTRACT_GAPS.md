@@ -30,11 +30,15 @@ riders (+verify/suspend/activate/assignments/settlements), inventory
   page-size selector (20/50/100) and a "more exist" hint; the **Next** button
   stays disabled until the backend returns `nextCursor`.
 
-### Not in the admin contract (deferred, no documented shapes)
-- **Campus / Zone / Delivery-slot management** — only `GET /v1/admin/campuses`
-  is consumed (scope selector + id→name lookup). Create/update of campuses,
-  zones, locations and delivery slots exist in OpenAPI but are absent from
-  `admin-endpoints.md`, so no write UI was built.
+### Campus configuration (implemented from OpenAPI; absent from admin-endpoints.md)
+- **Campuses / Zones / Locations / Delivery slots** — full management UI under
+  `/campuses` and `/campuses/[campusId]` (create campus, edit campus, and per
+  campus: zones, dispatch locations, delivery slots — create/edit/activate).
+  Request + response shapes were taken from the live OpenAPI and verified
+  against the running API. There is no single-campus GET endpoint, so the
+  detail page resolves the campus from the list.
+
+### Still deferred (no documented shapes)
 - **Payments operations** (`/v1/admin/payments*`) — present in OpenAPI, absent
   from the admin doc; no payments page built (response shapes undocumented).
 - **Promotions** (`/v1/admin/promotions*`) — out of scope.

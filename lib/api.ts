@@ -6,6 +6,7 @@ import type {
   InventoryRow, EscalationListItem, Escalation,
   Settlement, SettlementPreview, Review, UserRecord,
   AdminMembership, AnalyticsData, AuditLog,
+  Zone, CampusLocation, DeliverySlot, LocationType,
   ListEnvelope, ItemEnvelope, BeneficiaryType,
 } from '@/lib/types';
 
@@ -87,8 +88,36 @@ export const api = {
   getSession: () => request<ItemEnvelope<AdminSession>>('/admin/session'),
   getDashboard: (q?: Query) => request<ItemEnvelope<DashboardData>>(`/admin/dashboard${qs(q)}`),
 
-  // Campuses (used for scope selector + name lookups)
+  // Campuses (used for scope selector + name lookups, and campus configuration)
   getCampuses: (q?: Query) => request<ListEnvelope<Campus>>(`/admin/campuses${qs(q)}`),
+  createCampus: (body: { name: string; slug: string; timezone: string; currency: string; countryCode: string; active: boolean }) =>
+    post('/admin/campuses', body),
+  updateCampus: (id: string, body: Partial<{ name: string; slug: string; timezone: string; currency: string; countryCode: string; active: boolean }>) =>
+    patch(`/admin/campuses/${id}`, body),
+
+  // Zones (per campus)
+  getZones: (campusId: string, q?: Query) =>
+    request<ListEnvelope<Zone>>(`/admin/campuses/${campusId}/zones${qs(q)}`),
+  createZone: (campusId: string, body: { name: string; code: string; active: boolean; displayOrder: number }) =>
+    post(`/admin/campuses/${campusId}/zones`, body),
+  updateZone: (zoneId: string, body: Partial<{ name: string; code: string; active: boolean; displayOrder: number }>) =>
+    patch(`/admin/zones/${zoneId}`, body),
+
+  // Preset locations / dispatch terminals (per campus)
+  getLocations: (campusId: string, q?: Query) =>
+    request<ListEnvelope<CampusLocation>>(`/admin/campuses/${campusId}/locations${qs(q)}`),
+  createLocation: (campusId: string, body: { zoneId: string; name: string; slug: string; type: LocationType; deliveryInstructions?: string; active: boolean; displayOrder: number }) =>
+    post(`/admin/campuses/${campusId}/locations`, body),
+  updateLocation: (locationId: string, body: Partial<{ zoneId: string; name: string; slug: string; type: LocationType; deliveryInstructions: string; active: boolean; displayOrder: number }>) =>
+    patch(`/admin/locations/${locationId}`, body),
+
+  // Delivery slots / available times (per campus)
+  getDeliverySlots: (campusId: string, q?: Query) =>
+    request<ListEnvelope<DeliverySlot>>(`/admin/campuses/${campusId}/delivery-slots${qs(q)}`),
+  createDeliverySlot: (campusId: string, body: { name: string; deliveryTime: string; cutoffMinutes: number; active: boolean; displayOrder: number }) =>
+    post(`/admin/campuses/${campusId}/delivery-slots`, body),
+  updateDeliverySlot: (slotId: string, body: Partial<{ name: string; deliveryTime: string; cutoffMinutes: number; active: boolean; displayOrder: number }>) =>
+    patch(`/admin/delivery-slots/${slotId}`, body),
 
   // Orders
   getOrders: (q?: Query) => request<ListEnvelope<OrderListItem>>(`/admin/orders${qs(q)}`),

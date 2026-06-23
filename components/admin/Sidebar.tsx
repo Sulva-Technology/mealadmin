@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, Boxes, Package, Store, Bike, Users,
   Banknote, Star, AlertTriangle, BarChart3, ScrollText, ShieldCheck, Settings,
+  MapPin,
   type LucideIcon,
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
@@ -43,6 +44,12 @@ const GROUPS: Group[] = [
     items: [
       { name: 'Analytics', href: '/analytics', icon: BarChart3 },
       { name: 'Audit Logs', href: '/audit-logs', icon: ScrollText },
+    ],
+  },
+  {
+    label: 'Configuration',
+    items: [
+      { name: 'Campuses', href: '/campuses', icon: MapPin },
     ],
   },
   {
