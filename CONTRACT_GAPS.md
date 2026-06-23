@@ -1,20 +1,51 @@
 # CONTRACT GAPS
 
-This file tracks missing or incomplete API endpoints based on the Meal Direct OpenAPI specification and the Admin UI requirements.
+Tracks frontend ↔ backend gaps after wiring the admin UI to the documented
+admin API (`mealdirectbackend/docs/admin-endpoints.md`, base `/v1/admin`).
 
-### **Authentication & Session**
-- [ ] OAuth integration natively through Supabase is not fully wired on the frontend. The `NEXT_PUBLIC_SUPABASE_URL` and anon keys require configuration and a dedicated `@supabase/ssr` middleware.
+## Wired (real endpoints, no demo data)
 
-### **Dashboard**
-- [ ] `GET /v1/admin/dashboard` is used partially by fetching orders, vendors, and students individually and aggregating on the client. A dedicated endpoint that performs aggregation on the backend would improve performance and correctness.
+All 13 documented sections are implemented against live endpoints with cursor
+pagination, campus scoping, and authoritative refetch on mutations:
+session, dashboard, orders (+detail/transition/cancel), batches (+dispatch
+actions), vendors (+onboard/edit/approve/suspend/activate/users/performance),
+riders (+verify/suspend/activate/assignments/settlements), inventory
+(+adjustments), escalations (+assign/evidence/resolve/refund), settlements
+(+preview/generate/approve/mark-paid/adjustments), reviews (+moderate), users
+(+suspend/activate), admin-memberships (super-admin), analytics, audit logs.
 
-### **Subscriptions**
-- [ ] There is no documented `GET /v1/admin/subscriptions` in the backend API documentation context provided. The frontend relies on a local mocked store list.
+## Open gaps
 
-### **Settings and Notifications**
-- [ ] `PATCH /v1/me` and `PUT /v1/notifications/preferences` need proper schema alignment based on user payload. We are defaulting to mock state for now.
+### Authentication (needs live verification)
+- Backend admin routes require a **Supabase JWT** (`admin-endpoints.md` §1.1).
+  Login (`POST /v1/auth/admin/login`) → `supabase.auth.setSession(tokens)` →
+  proxy/middleware gate on `getClaims()`. This is internally consistent but has
+  **not** been verified end-to-end against a real admin account. Confirm a
+  campus_admin and a super_admin can sign in and that `getClaims()` accepts the
+  issued tokens.
 
-### **PWA specific operations**
-- [ ] Offline synchronization of administrative operations (like assigning an order or approving a vendor) isn't supported by the generic idempotency key handling out of the box because `serviceWorker` integration requires persistent background sync APIs, which are blocked or unavailable natively on iOS installed PWAs without extensive fallback work.
+### Pagination
+- List endpoints accept `cursor`+`limit` and return `pagination.hasMore`, but
+  **do not emit `nextCursor`** yet (offset-style `limit+1`). The UI exposes a
+  page-size selector (20/50/100) and a "more exist" hint; the **Next** button
+  stays disabled until the backend returns `nextCursor`.
 
-We have applied graceful fallbacks wherein if the actual API endpoint fails (e.g. `api.mealdirectly.com/docs` routing fails, or CORS blocks dev proxy), the store immediately degrades to offline-first local mode so that the UI can continue to be evaluated and previewed without freezing into empty data states.
+### Not in the admin contract (deferred, no documented shapes)
+- **Campus / Zone / Delivery-slot management** — only `GET /v1/admin/campuses`
+  is consumed (scope selector + id→name lookup). Create/update of campuses,
+  zones, locations and delivery slots exist in OpenAPI but are absent from
+  `admin-endpoints.md`, so no write UI was built.
+- **Payments operations** (`/v1/admin/payments*`) — present in OpenAPI, absent
+  from the admin doc; no payments page built (response shapes undocumented).
+- **Promotions** (`/v1/admin/promotions*`) — out of scope.
+
+### User-scoped (outside admin contract)
+- **Settings** shows the admin session read-only. Profile/notification editing
+  (`/v1/me`, `/v1/notifications/preferences`) are user-scoped APIs and are not
+  wired.
+
+### Backend-acknowledged no-ops
+- `escalations?assignee=` and `analytics?granularity=` are accepted/validated by
+  the backend but not applied in the current queries (per the doc). The UI does
+  not expose the `assignee` filter for that reason.
+- No single-review GET endpoint exists; review moderation is inline on the list.

@@ -49,7 +49,7 @@ export async function updateSession(request: NextRequest) {
   // Authenticated user on the login page -> dashboard
   if (isAuthed && isLoginRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
 
