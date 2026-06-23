@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0B6B4F;
+  --color-primary-strong: #074C39;
+  --color-accent: #F3B33D;
+  --color-success: #16845B;
+  --color-warning: #B96A05;
+  --color-danger: #B42318;
+  --color-info: #2764C5;
+  --color-ink: #10231C;
+  --color-muted: #617069;
+  --color-canvas: #F7F8F4;
+  --color-surface: #FFFFFF;
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-surface/40 backdrop-blur-xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:bg-black/20 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)];
+  }
+  .glass-card {
+    @apply bg-surface/60 backdrop-blur-md border border-white/80 shadow-sm hover:shadow-md transition-all duration-300 dark:bg-black/30 dark:border-white/10;
+  }
+  .glass-nav {
+    @apply bg-surface/30 backdrop-blur-2xl border-b border-white/50 shadow-sm dark:bg-black/30 dark:border-white/10;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
