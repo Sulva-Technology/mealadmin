@@ -8,6 +8,9 @@ import type {
   AdminMembership, AnalyticsData, AuditLog,
   Zone, CampusLocation, DeliverySlot, LocationType,
   ListEnvelope, ItemEnvelope, BeneficiaryType,
+  NotificationRecord, NotificationPreferences,
+  UpdateNotificationPreferences, RegisterDeviceTokenPayload,
+  MarkAllNotificationsReadResult,
 } from '@/lib/types';
 
 /** Real backend base URL. Used server-side (login + proxy route handlers). */
@@ -79,10 +82,28 @@ const post = (path: string, body?: unknown) =>
   request<ItemEnvelope<any>>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined });
 const patch = (path: string, body: unknown) =>
   request<ItemEnvelope<any>>(path, { method: 'PATCH', body: JSON.stringify(body) });
+const put = (path: string, body: unknown) =>
+  request<ItemEnvelope<any>>(path, { method: 'PUT', body: JSON.stringify(body) });
 
 export const api = {
   // Auth convenience reads (session lives in cookies).
   getMe: () => request('/auth/me'),
+
+  // Current-user notifications
+  getNotifications: (q?: Query) =>
+    request<ListEnvelope<NotificationRecord>>(`/notifications${qs(q)}`),
+  markNotificationRead: (id: string) =>
+    post(`/notifications/${id}/read`),
+  markAllNotificationsRead: () =>
+    post('/notifications/read-all') as Promise<ItemEnvelope<MarkAllNotificationsReadResult>>,
+  getNotificationPreferences: () =>
+    request<ItemEnvelope<NotificationPreferences>>('/notifications/preferences'),
+  updateNotificationPreferences: (body: UpdateNotificationPreferences) =>
+    put('/notifications/preferences', body) as Promise<ItemEnvelope<NotificationPreferences>>,
+  registerDeviceToken: (body: RegisterDeviceTokenPayload) =>
+    request<void>('/me/device-tokens', { method: 'POST', body: JSON.stringify(body) }),
+  removeDeviceToken: (token: string) =>
+    request<void>(`/me/device-tokens/${encodeURIComponent(token)}`, { method: 'DELETE' }),
 
   // Session & dashboard
   getSession: () => request<ItemEnvelope<AdminSession>>('/admin/session'),
@@ -92,15 +113,15 @@ export const api = {
   getCampuses: (q?: Query) => request<ListEnvelope<Campus>>(`/admin/campuses${qs(q)}`),
   createCampus: (body: { name: string; slug: string; timezone: string; currency: string; countryCode: string; active: boolean }) =>
     post('/admin/campuses', body),
-  updateCampus: (id: string, body: Partial<{ name: string; slug: string; timezone: string; currency: string; countryCode: string; active: boolean }>) =>
+  updateCampus: (id: string, body: Partial<{ name: string; slug: string; timezone: string; currency: string; countryCode: string; maxServiceFeeKobo: number; active: boolean }>) =>
     patch(`/admin/campuses/${id}`, body),
 
   // Zones (per campus)
   getZones: (campusId: string, q?: Query) =>
     request<ListEnvelope<Zone>>(`/admin/campuses/${campusId}/zones${qs(q)}`),
-  createZone: (campusId: string, body: { name: string; code: string; active: boolean; displayOrder: number }) =>
+  createZone: (campusId: string, body: { name: string; code: string; active: boolean; displayOrder: number; deliveryFeeKobo?: number }) =>
     post(`/admin/campuses/${campusId}/zones`, body),
-  updateZone: (zoneId: string, body: Partial<{ name: string; code: string; active: boolean; displayOrder: number }>) =>
+  updateZone: (zoneId: string, body: Partial<{ name: string; code: string; active: boolean; displayOrder: number; deliveryFeeKobo: number }>) =>
     patch(`/admin/zones/${zoneId}`, body),
 
   // Preset locations / dispatch terminals (per campus)

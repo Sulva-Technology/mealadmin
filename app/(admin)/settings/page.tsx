@@ -18,8 +18,8 @@ export default function SettingsPage() {
           <Field label="Scopes">{session?.scopes.join(', ')}</Field>
         </dl>
         <p className="text-xs text-muted mt-4">
-          Profile and notification-preference editing (<code>/v1/me</code>, <code>/v1/notifications/preferences</code>)
-          are user-scoped APIs outside the admin contract and are not yet wired here.
+          Profile editing (<code>/v1/me</code>) is user-scoped and outside the admin contract.
+          Notification preferences are managed from the Notifications page.
         </p>
       </Card>
     </>

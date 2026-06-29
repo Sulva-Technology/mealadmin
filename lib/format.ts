@@ -16,6 +16,19 @@ export function formatKobo(kobo?: number | null): string {
   return NGN.format(kobo / 100);
 }
 
+/** Integer kobo -> naira number for an editable input (e.g. 30000 -> 300). */
+export function koboToNaira(kobo?: number | null): number {
+  if (typeof kobo !== 'number' || Number.isNaN(kobo)) return 0;
+  return kobo / 100;
+}
+
+/** Naira input (string or number) -> integer kobo (e.g. "300" -> 30000). */
+export function nairaToKobo(naira: string | number): number {
+  const n = typeof naira === 'number' ? naira : parseFloat(naira);
+  if (Number.isNaN(n)) return 0;
+  return Math.round(n * 100);
+}
+
 /** ISO datetime/date text -> localized date-time. Campus tz when provided. */
 export function formatDateTime(value?: string | null, timeZone?: string): string {
   if (!value) return '—';

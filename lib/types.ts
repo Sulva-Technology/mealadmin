@@ -42,6 +42,21 @@ export type InventoryState = (typeof INVENTORY_STATES)[number];
 export type AdminRole = 'campus_admin' | 'super_admin';
 export type BeneficiaryType = 'rider' | 'vendor';
 
+// ---- Money bounds (integer kobo) -------------------------------------------
+// Mirror the backend fee contract. Used for client-side validation/hints only;
+// the backend is authoritative and re-validates.
+
+/** Hard ceiling on any single configurable fee (the order cap). */
+export const ORDER_CAP_KOBO = 249_000;
+/** Rider always nets this on a delivery; platform nets fee − this. */
+export const RIDER_SHARE_KOBO = 7_500;
+/** A zone delivery fee may not go below the rider share. */
+export const MIN_DELIVERY_FEE_KOBO = RIDER_SHARE_KOBO;
+/** Default zone delivery fee when none is supplied (₦150). */
+export const DEFAULT_DELIVERY_FEE_KOBO = 15_000;
+/** Default per-campus takeaway-fee ceiling until changed (₦200). */
+export const DEFAULT_MAX_SERVICE_FEE_KOBO = 20_000;
+
 // ---- Envelopes -------------------------------------------------------------
 
 export interface Pagination {
@@ -57,6 +72,49 @@ export interface ListEnvelope<T> {
 export interface ItemEnvelope<T> {
   data: T;
   meta?: Record<string, unknown>;
+}
+
+// ---- Notifications ---------------------------------------------------------
+
+export interface NotificationRecord {
+  id: string;
+  recipientUserId: string;
+  eventType: string;
+  aggregateType: string;
+  aggregateId: string;
+  title: string;
+  body: string;
+  linkPath: string | null;
+  readAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationPreferences {
+  userId: string;
+  inAppEnabled: boolean;
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  orderUpdates: boolean;
+  paymentUpdates: boolean;
+  deliveryUpdates: boolean;
+  escalationUpdates: boolean;
+  settlementUpdates: boolean;
+  updatedAt: string;
+}
+
+export type UpdateNotificationPreferences = Partial<
+  Omit<NotificationPreferences, 'userId' | 'updatedAt'>
+>;
+
+export interface RegisterDeviceTokenPayload {
+  token: string;
+  platform: 'web' | 'ios' | 'android' | string;
+  provider?: string;
+}
+
+export interface MarkAllNotificationsReadResult {
+  updatedCount: number;
 }
 
 // ---- Session & Dashboard ---------------------------------------------------
@@ -89,6 +147,8 @@ export interface Campus {
   timezone?: string;
   currency?: string;
   countryCode?: string;
+  /** Max takeaway/service fee a vendor on this campus may set. Default 20000. */
+  maxServiceFeeKobo?: number;
   active: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -101,6 +161,8 @@ export interface Zone {
   campusId: string;
   name: string;
   code: string;
+  /** Delivery fee charged for this zone, integer kobo. */
+  deliveryFeeKobo: number;
   active: boolean;
   displayOrder: number;
   createdAt: string;
