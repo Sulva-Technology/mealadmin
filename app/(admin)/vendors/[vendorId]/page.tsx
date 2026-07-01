@@ -11,6 +11,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { TextField, TextArea, Select } from '@/components/ui/Inputs';
+import { useToast } from '@/components/ui/Toast';
+import { Copy } from 'lucide-react';
 
 export default function VendorDetailPage() {
   const { vendorId } = useParams<{ vendorId: string }>();
@@ -25,8 +27,14 @@ export default function VendorDetailPage() {
   const [userId, setUserId] = useState('');
   const [userRole, setUserRole] = useState<'owner' | 'staff'>('staff');
   const [suspendOpen, setSuspendOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteHours, setInviteHours] = useState('72');
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
+  const toast = useToast();
   const invalidate = [['vendor', vendorId], ['vendors']];
+  const invitationsQ = useApiQuery(['vendor', vendorId, 'invitations'], () => api.getVendorInvitations(vendorId));
   const save = useApiAction(() => api.updateVendor(vendorId, form), {
     invalidate, success: 'Vendor updated.', onSuccess: () => setEditOpen(false),
   });
@@ -38,6 +46,29 @@ export default function VendorDetailPage() {
   const addUser = useApiAction(() => api.addVendorUser(vendorId, { userId, role: userRole }), {
     invalidate, success: 'Vendor user added.', onSuccess: () => { setUserOpen(false); setUserId(''); },
   });
+  const inviteVendor = useApiAction(() => api.inviteVendor(vendorId, { email: inviteEmail, expiresInHours: parseInt(inviteHours, 10) }), {
+    invalidate: [['vendor', vendorId, 'invitations']],
+    success: 'Invitation created.',
+    onSuccess: (res: any) => {
+      if (res?.data?.inviteUrl) {
+        setInviteUrl(res.data.inviteUrl);
+      }
+    }
+  });
+
+  const handleCopyInvite = () => {
+    if (inviteUrl) {
+      navigator.clipboard.writeText(inviteUrl);
+      toast.success('Copied to clipboard');
+    }
+  };
+
+  const closeInvite = () => {
+    setInviteOpen(false);
+    setInviteUrl(null);
+    setInviteEmail('');
+    setInviteHours('72');
+  };
 
   const openEdit = () => {
     if (!vendor) return;
@@ -98,9 +129,38 @@ export default function VendorDetailPage() {
                       <Button className="w-full" variant="danger" onClick={() => setSuspendOpen(true)}>Suspend</Button>
                     )}
                     <Button className="w-full" variant="subtle" onClick={() => setUserOpen(true)}>Add Vendor User</Button>
+                    <Button className="w-full" variant="subtle" onClick={() => setInviteOpen(true)}>Invite Vendor Owner</Button>
                   </div>
                 </Card>
               </div>
+
+              {invitationsQ.data?.data && invitationsQ.data.data.length > 0 && (
+                <Card className="p-6 overflow-x-auto">
+                  <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-4">Past Invitations</h3>
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-muted/20">
+                        <th className="py-2 text-sm font-medium text-muted">Email</th>
+                        <th className="py-2 text-sm font-medium text-muted">Status</th>
+                        <th className="py-2 text-sm font-medium text-muted">Created</th>
+                        <th className="py-2 text-sm font-medium text-muted">Expires</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invitationsQ.data.data.map(inv => (
+                        <tr key={inv.id} className="border-b border-muted/10 last:border-0 text-sm">
+                          <td className="py-3">{inv.email}</td>
+                          <td className="py-3">
+                            <StatusBadge status={inv.acceptedAt ? 'approved' : inv.revokedAt ? 'suspended' : 'pending'} />
+                          </td>
+                          <td className="py-3">{formatDateTime(inv.createdAt)}</td>
+                          <td className="py-3">{formatDateTime(inv.expiresAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Card>
+              )}
             </div>
           );
         }}
@@ -137,6 +197,53 @@ export default function VendorDetailPage() {
             <option value="staff">Staff</option>
             <option value="owner">Owner</option>
           </Select>
+        </div>
+      </Modal>
+
+      <Modal
+        open={inviteOpen} onClose={closeInvite} title="Invite Vendor Owner"
+        footer={!inviteUrl ? <>
+          <Button variant="ghost" onClick={closeInvite}>Cancel</Button>
+          <Button loading={inviteVendor.isPending} disabled={!inviteEmail || !inviteHours} onClick={() => inviteVendor.mutate()}>Create Invite</Button>
+        </> : <>
+          <Button variant="ghost" onClick={closeInvite}>Close</Button>
+        </>}
+      >
+        <div className="space-y-4">
+          {inviteUrl ? (
+            <div className="p-4 bg-success/10 border border-success/30 rounded-xl space-y-4">
+              <p className="text-sm text-ink dark:text-white">
+                <strong>Invitation created successfully!</strong>
+              </p>
+              <div className="flex items-center gap-2">
+                <input readOnly value={inviteUrl} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-ink/50 border border-muted/20 text-sm outline-none" />
+                <Button variant="outline" onClick={handleCopyInvite} className="shrink-0">
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-danger font-medium">
+                This link is shown only once and cannot be retrieved later. Please copy and send it to the vendor.
+              </p>
+            </div>
+          ) : (
+            <>
+              <TextField 
+                label="Owner Email" 
+                type="email" 
+                value={inviteEmail} 
+                onChange={(e) => setInviteEmail(e.target.value)} 
+                placeholder="owner@shop.com" 
+              />
+              <TextField 
+                label="Expires in (Hours)" 
+                type="number" 
+                min="1" max="168"
+                value={inviteHours} 
+                onChange={(e) => setInviteHours(e.target.value)} 
+                hint="Between 1 and 168 hours (7 days)."
+              />
+            </>
+          )}
         </div>
       </Modal>
 

@@ -7,7 +7,7 @@ import type {
   Settlement, SettlementPreview, Review, UserRecord,
   AdminMembership, AnalyticsData, AuditLog,
   Zone, CampusLocation, DeliverySlot, LocationType,
-  ListEnvelope, ItemEnvelope, BeneficiaryType,
+  ListEnvelope, ItemEnvelope, BeneficiaryType, VendorInvitation,
 } from '@/lib/types';
 
 /** Real backend base URL. Used server-side (login + proxy route handlers). */
@@ -153,6 +153,10 @@ export const api = {
     post(`/admin/vendors/${id}/users`, body),
   getVendorPerformance: (id: string) =>
     request<ItemEnvelope<VendorPerformance>>(`/admin/vendors/${id}/performance`),
+  inviteVendor: (id: string, body: { email: string; expiresInHours?: number }) =>
+    post(`/admin/vendors/${id}/invitations`, body),
+  getVendorInvitations: (id: string) =>
+    request<ListEnvelope<VendorInvitation>>(`/admin/vendors/${id}/invitations`),
 
   // Riders
   getRiders: (q?: Query) => request<ListEnvelope<RiderListItem>>(`/admin/riders${qs(q)}`),

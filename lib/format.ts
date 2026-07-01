@@ -36,9 +36,13 @@ export function formatDate(value?: string | null, timeZone?: string): string {
   return new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeZone }).format(d);
 }
 
-/** Today as YYYY-MM-DD (for default service-date filters). */
+/** Today as YYYY-MM-DD in the user's local timezone (for default service-date filters). */
 export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /** snake_case / "pending_payment" -> "Pending Payment". */
