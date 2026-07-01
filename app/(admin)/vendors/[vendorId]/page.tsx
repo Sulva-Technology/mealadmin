@@ -25,14 +25,14 @@ function invitationStatus(inv: VendorInvitation): { label: string; tone: 'succes
 }
 
 function useCountdown(target?: string | null) {
-  const [, tick] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!target) return;
-    const t = setInterval(() => tick((n) => n + 1), 1000);
+    const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [target]);
   if (!target) return null;
-  const diff = new Date(target).getTime() - Date.now();
+  const diff = new Date(target).getTime() - now;
   if (diff <= 0) return 'Expired';
   const h = Math.floor(diff / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
