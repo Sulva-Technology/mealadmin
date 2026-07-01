@@ -169,6 +169,22 @@ export interface Zone {
   updatedAt: string;
 }
 
+/**
+ * Global unit type, shared by all vendors (not campus-scoped). `code` is the
+ * immutable machine key; `countsTowardSpoonLimit` marks whether items measured
+ * in this unit count toward the 3-spoon takeaway limit.
+ */
+export interface UnitType {
+  id: string;
+  /** Immutable machine key, set at creation. */
+  code: string;
+  displayName: string;
+  countsTowardSpoonLimit: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const LOCATION_TYPES = ['department', 'hostel'] as const;
 export type LocationType = (typeof LOCATION_TYPES)[number];
 

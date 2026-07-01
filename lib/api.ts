@@ -7,7 +7,7 @@ import type {
   Settlement, SettlementPreview, Review, UserRecord,
   AdminMembership, AnalyticsData, AuditLog,
   VendorInvitation, VendorInvitationCreated,
-  Zone, CampusLocation, DeliverySlot, LocationType,
+  Zone, CampusLocation, DeliverySlot, LocationType, UnitType,
   ListEnvelope, ItemEnvelope, BeneficiaryType,
   NotificationRecord, NotificationPreferences,
   UpdateNotificationPreferences, RegisterDeviceTokenPayload,
@@ -140,6 +140,13 @@ export const api = {
     post(`/admin/campuses/${campusId}/delivery-slots`, body),
   updateDeliverySlot: (slotId: string, body: Partial<{ name: string; deliveryTime: string; cutoffMinutes: number; active: boolean; displayOrder: number }>) =>
     patch(`/admin/delivery-slots/${slotId}`, body),
+
+  // Unit types (global catalog, shared by all vendors)
+  getUnitTypes: (q?: Query) => request<ListEnvelope<UnitType>>(`/admin/unit-types${qs(q)}`),
+  createUnitType: (body: { code: string; displayName: string; countsTowardSpoonLimit: boolean }) =>
+    post('/admin/unit-types', body) as Promise<ItemEnvelope<UnitType>>,
+  updateUnitType: (id: string, body: Partial<{ displayName: string; countsTowardSpoonLimit: boolean; active: boolean }>) =>
+    patch(`/admin/unit-types/${id}`, body) as Promise<ItemEnvelope<UnitType>>,
 
   // Orders
   getOrders: (q?: Query) => request<ListEnvelope<OrderListItem>>(`/admin/orders${qs(q)}`),
