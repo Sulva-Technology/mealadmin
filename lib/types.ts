@@ -420,6 +420,26 @@ export interface AdminMembership {
   revokedAt: string | null;
 }
 
+// ---- Vendor invitations -----------------------------------------------------
+
+export type VendorInvitationStatus = 'pending' | 'accepted' | 'revoked';
+
+export interface VendorInvitation {
+  id: string;
+  vendorId: string;
+  email: string;
+  createdByAdminId: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  acceptedByUserId: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+/** Returned only from the create-invitation call; the raw token is never retrievable again. */
+export interface VendorInvitationCreated extends VendorInvitation {
+  inviteUrl: string;
+}
+
 // ---- Analytics & Audit -----------------------------------------------------
 
 export interface AnalyticsData {

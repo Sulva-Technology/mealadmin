@@ -1,22 +1,52 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { Copy, Check } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApiQuery, useApiAction } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
+import { useToast } from '@/components/ui/Toast';
 import { formatKobo, formatDateTime } from '@/lib/format';
 import { PageHeader, Card, Field, Stat, AsyncBoundary } from '@/components/ui/Page';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { TextField, TextArea, Select } from '@/components/ui/Inputs';
+import { DataTable } from '@/components/ui/DataTable';
+import type { VendorInvitation, VendorInvitationCreated } from '@/lib/types';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function invitationStatus(inv: VendorInvitation): { label: string; tone: 'success' | 'warning' | 'danger' } {
+  if (inv.revokedAt) return { label: 'revoked', tone: 'danger' };
+  if (inv.acceptedAt) return { label: 'accepted', tone: 'success' };
+  return { label: 'pending', tone: 'warning' };
+}
+
+function useCountdown(target?: string | null) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!target) return;
+    const t = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [target]);
+  if (!target) return null;
+  const diff = new Date(target).getTime() - Date.now();
+  if (diff <= 0) return 'Expired';
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const s = Math.floor((diff % 60_000) / 1000);
+  return `${h}h ${m}m ${s}s`;
+}
 
 export default function VendorDetailPage() {
   const { vendorId } = useParams<{ vendorId: string }>();
   const { campusName } = useSession();
+  const toast = useToast();
   const query = useApiQuery(['vendor', vendorId], () => api.getVendor(vendorId));
   const perfQ = useApiQuery(['vendor', vendorId, 'performance'], () => api.getVendorPerformance(vendorId));
+  const invitationsQ = useApiQuery(['vendor', vendorId, 'invitations'], () => api.getVendorInvitations(vendorId));
   const vendor = query.data?.data;
 
   const [editOpen, setEditOpen] = useState(false);
@@ -25,6 +55,12 @@ export default function VendorDetailPage() {
   const [userId, setUserId] = useState('');
   const [userRole, setUserRole] = useState<'owner' | 'staff'>('staff');
   const [suspendOpen, setSuspendOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteHours, setInviteHours] = useState(72);
+  const [inviteResult, setInviteResult] = useState<VendorInvitationCreated | null>(null);
+  const [copied, setCopied] = useState(false);
+  const inviteCountdown = useCountdown(inviteResult?.expiresAt);
 
   const invalidate = [['vendor', vendorId], ['vendors']];
   const save = useApiAction(() => api.updateVendor(vendorId, form), {
@@ -38,6 +74,25 @@ export default function VendorDetailPage() {
   const addUser = useApiAction(() => api.addVendorUser(vendorId, { userId, role: userRole }), {
     invalidate, success: 'Vendor user added.', onSuccess: () => { setUserOpen(false); setUserId(''); },
   });
+  const invite = useApiAction(
+    () => api.createVendorInvitation(vendorId, { email: inviteEmail, expiresInHours: inviteHours }),
+    {
+      invalidate: [['vendor', vendorId, 'invitations']],
+      onSuccess: (res) => { setInviteResult(res.data); setInviteEmail(''); setCopied(false); },
+    },
+  );
+
+  const closeInvite = () => { setInviteOpen(false); setInviteResult(null); setInviteEmail(''); setInviteHours(72); };
+  const copyInviteUrl = async () => {
+    if (!inviteResult) return;
+    try {
+      await navigator.clipboard.writeText(inviteResult.inviteUrl);
+      setCopied(true);
+      toast.success('Invite link copied.');
+    } catch {
+      toast.error('Could not copy to clipboard.');
+    }
+  };
 
   const openEdit = () => {
     if (!vendor) return;
@@ -98,9 +153,32 @@ export default function VendorDetailPage() {
                       <Button className="w-full" variant="danger" onClick={() => setSuspendOpen(true)}>Suspend</Button>
                     )}
                     <Button className="w-full" variant="subtle" onClick={() => setUserOpen(true)}>Add Vendor User</Button>
+                    <Button className="w-full" variant="subtle" onClick={() => setInviteOpen(true)}>Invite Vendor Owner</Button>
                   </div>
                 </Card>
               </div>
+
+              <Card className="p-6">
+                <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-4">Vendor Invitations</h3>
+                {invitationsQ.data?.data.length ? (
+                  <DataTable<VendorInvitation>
+                    rowKey={(r) => r.id}
+                    columns={[
+                      { header: 'Email', render: (r) => r.email },
+                      { header: 'Status', render: (r) => {
+                        const s = invitationStatus(r);
+                        return <StatusBadge status={s.label} tone={s.tone} />;
+                      } },
+                      { header: 'Invited At', render: (r) => formatDateTime(r.createdAt) },
+                      { header: 'Expires At', render: (r) => formatDateTime(r.expiresAt) },
+                      { header: 'Invited By', render: (r) => r.createdByAdminId },
+                    ]}
+                    rows={invitationsQ.data.data}
+                  />
+                ) : (
+                  <p className="text-sm text-muted">No invitations sent yet.</p>
+                )}
+              </Card>
             </div>
           );
         }}
@@ -145,6 +223,60 @@ export default function VendorDetailPage() {
         loading={suspend.isPending} danger confirmLabel="Suspend"
         title="Suspend Vendor" message="Suspended vendors cannot receive orders. Continue?"
       />
+
+      <Modal
+        open={inviteOpen} onClose={closeInvite} title="Invite Vendor Owner"
+        footer={inviteResult ? (
+          <Button onClick={closeInvite}>Done</Button>
+        ) : (
+          <>
+            <Button variant="ghost" onClick={closeInvite}>Cancel</Button>
+            <Button
+              loading={invite.isPending}
+              disabled={!EMAIL_RE.test(inviteEmail) || inviteHours < 1 || inviteHours > 168}
+              onClick={() => invite.mutate()}
+            >
+              Send Invite
+            </Button>
+          </>
+        )}
+      >
+        {inviteResult ? (
+          <div className="space-y-4">
+            <div className="rounded-xl bg-warning/10 border border-warning/30 px-3 py-2 text-xs text-warning">
+              This link is shown once. The raw token is not stored and cannot be retrieved again — copy it now.
+            </div>
+            <div>
+              <span className="block text-sm font-medium text-ink dark:text-muted mb-1">Invite URL</span>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly value={inviteResult.inviteUrl}
+                  className="w-full px-3 py-2 rounded-xl bg-surface dark:bg-ink/50 border border-muted/20 text-xs font-mono outline-none"
+                  onFocus={(e) => e.currentTarget.select()}
+                />
+                <Button variant="outline" size="sm" onClick={copyInviteUrl}>
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+            <Field label="Expires">{formatDateTime(inviteResult.expiresAt)} ({inviteCountdown})</Field>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <TextField
+              label="Owner email" type="email" value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              hint="Sent to whoever should accept ownership of this vendor."
+            />
+            <TextField
+              label="Expires in (hours)" type="number" min={1} max={168}
+              value={inviteHours}
+              onChange={(e) => setInviteHours(Number(e.target.value))}
+              hint="1–168 hours. Defaults to 72."
+            />
+          </div>
+        )}
+      </Modal>
     </>
   );
 }

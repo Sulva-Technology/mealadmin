@@ -6,6 +6,7 @@ import type {
   InventoryRow, EscalationListItem, Escalation,
   Settlement, SettlementPreview, Review, UserRecord,
   AdminMembership, AnalyticsData, AuditLog,
+  VendorInvitation, VendorInvitationCreated,
   Zone, CampusLocation, DeliverySlot, LocationType,
   ListEnvelope, ItemEnvelope, BeneficiaryType,
   NotificationRecord, NotificationPreferences,
@@ -174,6 +175,10 @@ export const api = {
     post(`/admin/vendors/${id}/users`, body),
   getVendorPerformance: (id: string) =>
     request<ItemEnvelope<VendorPerformance>>(`/admin/vendors/${id}/performance`),
+  getVendorInvitations: (id: string, q?: Query) =>
+    request<ListEnvelope<VendorInvitation>>(`/admin/vendors/${id}/invitations${qs(q)}`),
+  createVendorInvitation: (id: string, body: { email: string; expiresInHours?: number }) =>
+    post(`/admin/vendors/${id}/invitations`, body) as Promise<ItemEnvelope<VendorInvitationCreated>>,
 
   // Riders
   getRiders: (q?: Query) => request<ListEnvelope<RiderListItem>>(`/admin/riders${qs(q)}`),
