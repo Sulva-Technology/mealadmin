@@ -1,6 +1,7 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 import { Button } from './Button';
@@ -15,10 +16,16 @@ export function Modal({
   footer?: ReactNode;
   wide?: boolean;
 }) {
-  return (
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const content = (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-ink/50 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 backdrop-blur-sm px-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -38,6 +45,9 @@ export function Modal({
       )}
     </AnimatePresence>
   );
+
+  if (!mounted) return null;
+  return createPortal(content, document.body);
 }
 
 export function ConfirmDialog({
