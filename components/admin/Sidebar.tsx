@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, Boxes, Package, Store, Bike, Users,
   Banknote, Star, AlertTriangle, BarChart3, ScrollText, ShieldCheck, Settings,
-  MapPin,
+  MapPin, Bell, Ruler,
   type LucideIcon,
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
@@ -50,12 +50,14 @@ const GROUPS: Group[] = [
     label: 'Configuration',
     items: [
       { name: 'Campuses', href: '/campuses', icon: MapPin },
+      { name: 'Unit Types', href: '/unit-types', icon: Ruler },
     ],
   },
   {
     label: 'System',
     items: [
       { name: 'Admins', href: '/admins', icon: ShieldCheck, superAdmin: true },
+      { name: 'Notifications', href: '/notifications', icon: Bell },
       { name: 'Settings', href: '/settings', icon: Settings },
     ],
   },

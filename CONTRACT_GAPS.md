@@ -14,6 +14,10 @@ riders (+verify/suspend/activate/assignments/settlements), inventory
 (+preview/generate/approve/mark-paid/adjustments), reviews (+moderate), users
 (+suspend/activate), admin-memberships (super-admin), analytics, audit logs.
 
+Current-user notification feed and preferences are also wired from the live
+OpenAPI user-scoped contract: `/v1/notifications`, read/read-all actions, and
+`/v1/notifications/preferences`.
+
 ## Open gaps
 
 ### Authentication (needs live verification)
@@ -44,9 +48,13 @@ riders (+verify/suspend/activate/assignments/settlements), inventory
 - **Promotions** (`/v1/admin/promotions*`) — out of scope.
 
 ### User-scoped (outside admin contract)
-- **Settings** shows the admin session read-only. Profile/notification editing
-  (`/v1/me`, `/v1/notifications/preferences`) are user-scoped APIs and are not
-  wired.
+- **Settings** shows the admin session read-only. Profile editing (`/v1/me`) is
+  still not wired.
+- **Push device-token registration** exposes `/v1/me/device-tokens`, but the
+  OpenAPI `RegisterDeviceTokenDto` currently has no documented fields. The
+  frontend client accepts `{ token, platform, provider? }`, but real browser push
+  subscription requires backend confirmation of the payload and public VAPID key
+  flow before enabling automatic service-worker registration.
 
 ### Backend-acknowledged no-ops
 - `escalations?assignee=` and `analytics?granularity=` are accepted/validated by

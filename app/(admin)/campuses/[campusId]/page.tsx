@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useApiQuery, useApiAction } from '@/lib/hooks';
+import { ORDER_CAP_KOBO, DEFAULT_MAX_SERVICE_FEE_KOBO } from '@/lib/types';
+import { formatKobo, koboToNaira, nairaToKobo } from '@/lib/format';
 import { PageHeader, Card, Field, AsyncBoundary } from '@/components/ui/Page';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
@@ -20,7 +22,9 @@ export default function CampusDetailPage() {
   const campus = query.data?.data.find((c) => c.id === campusId);
 
   const [editOpen, setEditOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', timezone: '', currency: '', countryCode: '', active: true });
+  const [form, setForm] = useState({ name: '', timezone: '', currency: '', countryCode: '', maxServiceFeeKobo: DEFAULT_MAX_SERVICE_FEE_KOBO, active: true });
+
+  const feeValid = Number.isFinite(form.maxServiceFeeKobo) && form.maxServiceFeeKobo >= 0 && form.maxServiceFeeKobo <= ORDER_CAP_KOBO;
 
   const save = useApiAction(() => api.updateCampus(campusId, form), {
     invalidate: [['campuses']], success: 'Campus updated.', onSuccess: () => setEditOpen(false),
@@ -28,7 +32,7 @@ export default function CampusDetailPage() {
 
   const openEdit = () => {
     if (!campus) return;
-    setForm({ name: campus.name, timezone: campus.timezone ?? '', currency: campus.currency ?? '', countryCode: campus.countryCode ?? '', active: campus.active });
+    setForm({ name: campus.name, timezone: campus.timezone ?? '', currency: campus.currency ?? '', countryCode: campus.countryCode ?? '', maxServiceFeeKobo: campus.maxServiceFeeKobo ?? DEFAULT_MAX_SERVICE_FEE_KOBO, active: campus.active });
     setEditOpen(true);
   };
 
@@ -50,6 +54,7 @@ export default function CampusDetailPage() {
                   <Field label="Timezone">{campus.timezone}</Field>
                   <Field label="Currency">{campus.currency}</Field>
                   <Field label="Country">{campus.countryCode}</Field>
+                  <Field label="Takeaway fee cap">{formatKobo(campus.maxServiceFeeKobo ?? DEFAULT_MAX_SERVICE_FEE_KOBO)}</Field>
                 </dl>
               </Card>
 
@@ -65,7 +70,7 @@ export default function CampusDetailPage() {
         open={editOpen} onClose={() => setEditOpen(false)} title="Edit Campus"
         footer={<>
           <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancel</Button>
-          <Button loading={save.isPending} onClick={() => save.mutate()}>Save</Button>
+          <Button loading={save.isPending} disabled={!feeValid} onClick={() => save.mutate()}>Save</Button>
         </>}
       >
         <div className="space-y-4">
@@ -75,6 +80,16 @@ export default function CampusDetailPage() {
             <TextField label="Currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
           </div>
           <TextField label="Country code" value={form.countryCode} onChange={(e) => setForm({ ...form, countryCode: e.target.value })} />
+          <TextField
+            label="Takeaway fee cap (₦)" type="number" min={0} max={ORDER_CAP_KOBO / 100} step="1"
+            value={koboToNaira(form.maxServiceFeeKobo)}
+            onChange={(e) => setForm({ ...form, maxServiceFeeKobo: nairaToKobo(e.target.value) })}
+            hint={
+              feeValid
+                ? 'Max takeaway fee any vendor on this campus may set.'
+                : `Must be between ${formatKobo(0)} and ${formatKobo(ORDER_CAP_KOBO)}.`
+            }
+          />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Active
           </label>

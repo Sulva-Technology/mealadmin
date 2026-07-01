@@ -6,8 +6,12 @@ import type {
   InventoryRow, EscalationListItem, Escalation,
   Settlement, SettlementPreview, Review, UserRecord,
   AdminMembership, AnalyticsData, AuditLog,
-  Zone, CampusLocation, DeliverySlot, LocationType,
-  ListEnvelope, ItemEnvelope, BeneficiaryType, VendorInvitation,
+  VendorInvitation, VendorInvitationCreated,
+  Zone, CampusLocation, DeliverySlot, LocationType, UnitType,
+  ListEnvelope, ItemEnvelope, BeneficiaryType,
+  NotificationRecord, NotificationPreferences,
+  UpdateNotificationPreferences, RegisterDeviceTokenPayload,
+  MarkAllNotificationsReadResult,
 } from '@/lib/types';
 
 /** Real backend base URL. Used server-side (login + proxy route handlers). */
@@ -79,10 +83,28 @@ const post = (path: string, body?: unknown) =>
   request<ItemEnvelope<any>>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined });
 const patch = (path: string, body: unknown) =>
   request<ItemEnvelope<any>>(path, { method: 'PATCH', body: JSON.stringify(body) });
+const put = (path: string, body: unknown) =>
+  request<ItemEnvelope<any>>(path, { method: 'PUT', body: JSON.stringify(body) });
 
 export const api = {
   // Auth convenience reads (session lives in cookies).
   getMe: () => request('/auth/me'),
+
+  // Current-user notifications
+  getNotifications: (q?: Query) =>
+    request<ListEnvelope<NotificationRecord>>(`/notifications${qs(q)}`),
+  markNotificationRead: (id: string) =>
+    post(`/notifications/${id}/read`),
+  markAllNotificationsRead: () =>
+    post('/notifications/read-all') as Promise<ItemEnvelope<MarkAllNotificationsReadResult>>,
+  getNotificationPreferences: () =>
+    request<ItemEnvelope<NotificationPreferences>>('/notifications/preferences'),
+  updateNotificationPreferences: (body: UpdateNotificationPreferences) =>
+    put('/notifications/preferences', body) as Promise<ItemEnvelope<NotificationPreferences>>,
+  registerDeviceToken: (body: RegisterDeviceTokenPayload) =>
+    request<void>('/me/device-tokens', { method: 'POST', body: JSON.stringify(body) }),
+  removeDeviceToken: (token: string) =>
+    request<void>(`/me/device-tokens/${encodeURIComponent(token)}`, { method: 'DELETE' }),
 
   // Session & dashboard
   getSession: () => request<ItemEnvelope<AdminSession>>('/admin/session'),
@@ -92,15 +114,15 @@ export const api = {
   getCampuses: (q?: Query) => request<ListEnvelope<Campus>>(`/admin/campuses${qs(q)}`),
   createCampus: (body: { name: string; slug: string; timezone: string; currency: string; countryCode: string; active: boolean }) =>
     post('/admin/campuses', body),
-  updateCampus: (id: string, body: Partial<{ name: string; slug: string; timezone: string; currency: string; countryCode: string; active: boolean }>) =>
+  updateCampus: (id: string, body: Partial<{ name: string; slug: string; timezone: string; currency: string; countryCode: string; maxServiceFeeKobo: number; active: boolean }>) =>
     patch(`/admin/campuses/${id}`, body),
 
   // Zones (per campus)
   getZones: (campusId: string, q?: Query) =>
     request<ListEnvelope<Zone>>(`/admin/campuses/${campusId}/zones${qs(q)}`),
-  createZone: (campusId: string, body: { name: string; code: string; active: boolean; displayOrder: number }) =>
+  createZone: (campusId: string, body: { name: string; code: string; active: boolean; displayOrder: number; deliveryFeeKobo?: number }) =>
     post(`/admin/campuses/${campusId}/zones`, body),
-  updateZone: (zoneId: string, body: Partial<{ name: string; code: string; active: boolean; displayOrder: number }>) =>
+  updateZone: (zoneId: string, body: Partial<{ name: string; code: string; active: boolean; displayOrder: number; deliveryFeeKobo: number }>) =>
     patch(`/admin/zones/${zoneId}`, body),
 
   // Preset locations / dispatch terminals (per campus)
@@ -118,6 +140,13 @@ export const api = {
     post(`/admin/campuses/${campusId}/delivery-slots`, body),
   updateDeliverySlot: (slotId: string, body: Partial<{ name: string; deliveryTime: string; cutoffMinutes: number; active: boolean; displayOrder: number }>) =>
     patch(`/admin/delivery-slots/${slotId}`, body),
+
+  // Unit types (global catalog, shared by all vendors)
+  getUnitTypes: (q?: Query) => request<ListEnvelope<UnitType>>(`/admin/unit-types${qs(q)}`),
+  createUnitType: (body: { code: string; displayName: string; countsTowardSpoonLimit: boolean }) =>
+    post('/admin/unit-types', body) as Promise<ItemEnvelope<UnitType>>,
+  updateUnitType: (id: string, body: Partial<{ displayName: string; countsTowardSpoonLimit: boolean; active: boolean }>) =>
+    patch(`/admin/unit-types/${id}`, body) as Promise<ItemEnvelope<UnitType>>,
 
   // Orders
   getOrders: (q?: Query) => request<ListEnvelope<OrderListItem>>(`/admin/orders${qs(q)}`),
@@ -153,10 +182,10 @@ export const api = {
     post(`/admin/vendors/${id}/users`, body),
   getVendorPerformance: (id: string) =>
     request<ItemEnvelope<VendorPerformance>>(`/admin/vendors/${id}/performance`),
-  inviteVendor: (id: string, body: { email: string; expiresInHours?: number }) =>
-    post(`/admin/vendors/${id}/invitations`, body),
-  getVendorInvitations: (id: string) =>
-    request<ListEnvelope<VendorInvitation>>(`/admin/vendors/${id}/invitations`),
+  getVendorInvitations: (id: string, q?: Query) =>
+    request<ListEnvelope<VendorInvitation>>(`/admin/vendors/${id}/invitations${qs(q)}`),
+  createVendorInvitation: (id: string, body: { email: string; expiresInHours?: number }) =>
+    post(`/admin/vendors/${id}/invitations`, body) as Promise<ItemEnvelope<VendorInvitationCreated>>,
 
   // Riders
   getRiders: (q?: Query) => request<ListEnvelope<RiderListItem>>(`/admin/riders${qs(q)}`),

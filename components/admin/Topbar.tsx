@@ -1,12 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Moon, Sun, LogOut, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
+import { Bell, MapPin, Moon, Sun, LogOut, ShieldCheck } from 'lucide-react';
 import { useSession } from '@/lib/session';
+import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/hooks';
+import { getUnreadNotificationCount } from '@/lib/notifications';
 
 export function Topbar() {
   const { session, isSuperAdmin, campuses, scopeCampusId, setScopeCampusId, campusName } = useSession();
   const [dark, setDark] = useState(false);
+  const notifications = useApiQuery(
+    ['notifications', { limit: 20 }],
+    () => api.getNotifications({ limit: 20 }),
+    Boolean(session),
+  );
+  const unreadCount = getUnreadNotificationCount(notifications.data?.data ?? []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
@@ -49,6 +59,15 @@ export function Topbar() {
         <button onClick={() => setDark((d) => !d)} className="p-2 hover:bg-canvas dark:hover:bg-ink/60 rounded-lg text-muted">
           {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
+
+        <Link href="/notifications" className="relative p-2 hover:bg-canvas dark:hover:bg-ink/60 rounded-lg text-muted">
+          <Bell className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Link>
 
         <div className="flex items-center gap-3 pl-2 md:pl-4 md:border-l border-muted/20">
           <div className="text-right hidden sm:block">
