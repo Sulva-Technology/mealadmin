@@ -7,6 +7,7 @@ import { useSession } from '@/lib/session';
 import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/hooks';
 import { getUnreadNotificationCount } from '@/lib/notifications';
+import { disablePush } from '@/lib/push';
 
 export function Topbar() {
   const { session, isSuperAdmin, campuses, scopeCampusId, setScopeCampusId, campusName } = useSession();
@@ -24,6 +25,9 @@ export function Topbar() {
 
   const logout = async () => {
     try {
+      // Unregister this browser's push token before the session is cleared,
+      // while the proxy can still authenticate the DELETE.
+      await disablePush();
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
     } finally {
       window.location.href = '/login';
