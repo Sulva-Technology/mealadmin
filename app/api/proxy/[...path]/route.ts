@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { API_BASE_URL } from '@/lib/api';
+import { isSafeProxyPath } from '@/lib/proxy-guard';
 
 /**
  * Authenticated proxy to the Meal Direct backend.
@@ -17,6 +18,13 @@ import { API_BASE_URL } from '@/lib/api';
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 async function handle(request: NextRequest, path: string[]) {
+  if (!isSafeProxyPath(path)) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN_PATH', message: 'Path not allowed through this proxy.' } },
+      { status: 403 }
+    );
+  }
+
   const supabase = await createClient();
 
   // getClaims() revalidates the token; it is the authorization gate.

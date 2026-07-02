@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   useQuery, useMutation, useQueryClient,
   type QueryKey,
@@ -17,6 +17,12 @@ export function useApiQuery<T>(key: QueryKey, fetcher: () => Promise<T>, enabled
  * Mutation wrapper: runs the action, toasts success/error, and invalidates the
  * given query keys so lists/details refetch authoritative state (never optimistic
  * for money/status — we refetch).
+ *
+ * Double-submit guard: while a mutation is in flight, further mutate() calls
+ * are dropped. Each browser request gets its own Idempotency-Key in the proxy,
+ * so a double-clicked refund/cancel/mark-paid would otherwise execute twice.
+ * The guard uses a ref (set synchronously) because isPending only updates on
+ * the next render — two clicks in the same tick would both pass an isPending check.
  */
 export function useApiAction<TData, TArgs = void>(
   fn: (args: TArgs) => Promise<TData>,
@@ -24,7 +30,8 @@ export function useApiAction<TData, TArgs = void>(
 ) {
   const qc = useQueryClient();
   const toast = useToast();
-  return useMutation({
+  const inFlight = useRef(false);
+  const mutation = useMutation({
     mutationFn: fn,
     onSuccess: (data) => {
       if (opts.success) toast.success(opts.success);
@@ -35,7 +42,18 @@ export function useApiAction<TData, TArgs = void>(
       const msg = err instanceof ApiError ? err.message : 'Action failed.';
       toast.error(msg);
     },
+    onSettled: () => {
+      inFlight.current = false;
+    },
   });
+
+  const mutate: typeof mutation.mutate = (...args) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    mutation.mutate(...args);
+  };
+
+  return { ...mutation, mutate };
 }
 
 /** Debounce a fast-changing value (search inputs) before it hits a query key. */
