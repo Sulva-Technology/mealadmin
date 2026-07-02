@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 
@@ -47,9 +48,8 @@ export function Login() {
         className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-muted/10 dark:bg-ink"
       >
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-green-500/20">
-            <Lock className="w-8 h-8 text-white" />
-          </div>
+          <Image src="/logo.png" alt="Meal Direct" width={64} height={64} priority className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-lg shadow-green-500/20" />
+
           <h1 className="text-2xl font-space font-bold text-ink dark:text-white">Admin Portal</h1>
           <p className="text-muted dark:text-muted mt-2">Sign in to Meal Direct mission control</p>
         </div>

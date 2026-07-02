@@ -19,8 +19,19 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   );
   const unreadCount = getUnreadNotificationCount(notifications.data?.data ?? []);
 
+  // Restore saved preference on mount (falls back to system preference).
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) {
+      setDark(saved === 'dark');
+    } else {
+      setDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+  }, []);
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
   }, [dark]);
 
   const logout = async () => {
