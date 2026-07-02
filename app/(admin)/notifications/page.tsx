@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
 import { formatDateTime, titleize } from '@/lib/format';
 import { getNotificationHref, getUnreadNotificationCount } from '@/lib/notifications';
-import type { NotificationPreferences } from '@/lib/types';
+import type { NotificationPreferences, UpdateNotificationPreferences } from '@/lib/types';
 import { PageHeader, Card, AsyncBoundary } from '@/components/ui/Page';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -33,6 +33,20 @@ const preferenceGroups: Array<{
 
 function preferenceLabel(key: string) {
   return titleize(key.replace(/Enabled$/, '').replace(/Updates$/, ' updates'));
+}
+
+/**
+ * The backend PUTs preferences as a full replace, so a partial body nulls the
+ * untouched columns (violating their NOT NULL constraints). Send the whole
+ * current object with just the toggled key overridden.
+ */
+function nextPreferences(
+  current: NotificationPreferences,
+  key: keyof Omit<NotificationPreferences, 'userId' | 'updatedAt'>,
+  value: boolean,
+): UpdateNotificationPreferences {
+  const { userId: _userId, updatedAt: _updatedAt, ...editable } = current;
+  return { ...editable, [key]: value };
 }
 
 export default function NotificationsPage() {
@@ -164,7 +178,7 @@ export default function NotificationsPage() {
                             className="h-4 w-4 accent-primary"
                             checked={Boolean(env.data[key])}
                             disabled={updatePreference.isPending}
-                            onChange={(event) => updatePreference.mutate({ [key]: event.target.checked })}
+                            onChange={(event) => updatePreference.mutate(nextPreferences(env.data, key, event.target.checked))}
                           />
                         </label>
                       ))}
