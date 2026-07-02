@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { QueryProvider } from '@/lib/query';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -8,10 +8,12 @@ import { SessionProvider, useSession } from '@/lib/session';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { PushRegistration } from './PushRegistration';
+import { BottomNav } from './BottomNav';
 import { Button } from '@/components/ui/Button';
 
 function Gate({ children }: { children: ReactNode }) {
   const { isLoading, session } = useSession();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -42,12 +44,13 @@ function Gate({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden bg-canvas dark:bg-ink">
       <PushRegistration />
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto hide-scrollbar p-4 md:p-8">
+      <Sidebar mobileOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <Topbar onOpenMenu={() => setMobileMenuOpen(true)} />
+        <main className="flex-1 overflow-y-auto hide-scrollbar p-4 md:p-8 pb-24 md:pb-8">
           <div className="max-w-7xl mx-auto w-full">{children}</div>
         </main>
+        <BottomNav onOpenMenu={() => setMobileMenuOpen(true)} />
       </div>
     </div>
   );

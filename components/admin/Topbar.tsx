@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Bell, MapPin, Moon, Sun, LogOut, ShieldCheck } from 'lucide-react';
+import { Bell, MapPin, Moon, Sun, LogOut, ShieldCheck, Menu } from 'lucide-react';
 import { useSession } from '@/lib/session';
 import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/hooks';
 import { getUnreadNotificationCount } from '@/lib/notifications';
 import { disablePush } from '@/lib/push';
 
-export function Topbar() {
+export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { session, isSuperAdmin, campuses, scopeCampusId, setScopeCampusId, campusName } = useSession();
   const [dark, setDark] = useState(false);
   const notifications = useApiQuery(
@@ -36,8 +36,9 @@ export function Topbar() {
 
   return (
     <header className="h-16 glass-nav shrink-0 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-surface/60 dark:bg-ink/40 border border-white/60 dark:border-white/10 rounded-lg text-sm font-medium">
-        <MapPin className="w-4 h-4 text-primary" />
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-surface/60 dark:bg-ink/40 border border-white/60 dark:border-white/10 rounded-lg text-sm font-medium">
+          <MapPin className="w-4 h-4 text-primary" />
         {isSuperAdmin ? (
           <select
             value={scopeCampusId ?? ''}
@@ -50,6 +51,7 @@ export function Topbar() {
         ) : (
           <span className="font-space">{campusName(session?.campusId)}</span>
         )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">

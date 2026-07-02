@@ -218,6 +218,7 @@ export default function VendorDetailPage() {
         </div>
       </Modal>
 
+
       <ConfirmDialog
         open={suspendOpen} onClose={() => setSuspendOpen(false)} onConfirm={() => suspend.mutate()}
         loading={suspend.isPending} danger confirmLabel="Suspend"

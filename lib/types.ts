@@ -290,6 +290,18 @@ export interface VendorPerformance {
   reviewCount?: number;
   averageVendorRating?: number | null;
 }
+export interface VendorInvitation {
+  id: string;
+  vendorId: string;
+  email: string;
+  createdByAdminId: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  acceptedByUserId: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+  inviteUrl?: string;
+}
 
 // ---- Riders ----------------------------------------------------------------
 
