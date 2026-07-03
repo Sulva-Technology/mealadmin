@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { useApiAction } from '@/lib/hooks';
+import { useApiAction, useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { SETTLEMENT_STATUSES, type SettlementListItem, type BeneficiaryType } from '@/lib/types';
 import { formatKobo, formatDate, titleize, todayISO } from '@/lib/format';
@@ -41,6 +41,20 @@ export default function SettlementsPage() {
   const [bType, setBType] = useState<BeneficiaryType>('vendor');
   const [bId, setBId] = useState('');
   const [bDate, setBDate] = useState(todayISO());
+
+  const beneficiaryParams = { campusId: scopeCampusId ?? undefined, active: 'true', limit: 200 };
+  const vendors = useApiQuery(
+    ['vendors', 'settlement-picker', beneficiaryParams],
+    () => api.getVendors(beneficiaryParams),
+    genOpen && bType === 'vendor',
+  );
+  const riders = useApiQuery(
+    ['riders', 'settlement-picker', beneficiaryParams],
+    () => api.getRiders(beneficiaryParams),
+    genOpen && bType === 'rider',
+  );
+  const beneficiaries = bType === 'vendor' ? vendors : riders;
+  const beneficiariesLoading = beneficiaries.isLoading;
 
   const preview = useApiAction(
     () => api.previewSettlement({ beneficiaryType: bType, beneficiaryId: bId, settlementDate: bDate }),
@@ -96,11 +110,21 @@ export default function SettlementsPage() {
         </>}
       >
         <div className="space-y-4">
-          <Select label="Beneficiary type" value={bType} onChange={(e) => setBType(e.target.value as BeneficiaryType)}>
+          <Select label="Beneficiary type" value={bType} onChange={(e) => { setBType(e.target.value as BeneficiaryType); setBId(''); preview.reset(); }}>
             <option value="vendor">Vendor</option>
             <option value="rider">Rider</option>
           </Select>
-          <TextField label="Beneficiary ID (UUID)" value={bId} onChange={(e) => setBId(e.target.value)} />
+          <Select
+            label={bType === 'vendor' ? 'Vendor' : 'Rider'}
+            value={bId}
+            onChange={(e) => { setBId(e.target.value); preview.reset(); }}
+            disabled={beneficiariesLoading}
+          >
+            <option value="">{beneficiariesLoading ? 'Loading…' : `Select a ${bType}…`}</option>
+            {beneficiaries.data?.data.map((b) => (
+              <option key={b.id} value={b.id}>{b.displayName}</option>
+            ))}
+          </Select>
           <TextField label="Settlement date" type="date" value={bDate} onChange={(e) => setBDate(e.target.value)} />
           {est && (
             <div className="rounded-xl bg-canvas dark:bg-ink/60 p-4 text-sm space-y-1">

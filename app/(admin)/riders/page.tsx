@@ -24,6 +24,15 @@ const columns: Column<RiderListItem>[] = [
   },
   { header: 'Status', render: (r) => <StatusBadge status={r.status} /> },
   { header: 'Active', render: (r) => (r.active ? 'Yes' : 'No') },
+  {
+    header: 'Online',
+    render: (r) => (
+      <span className="inline-flex items-center gap-1.5">
+        <span className={`w-2 h-2 rounded-full ${r.available ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+        {r.available ? 'Online' : 'Offline'}
+      </span>
+    ),
+  },
   { header: 'Verified', align: 'right', render: (r) => formatDate(r.verifiedAt) },
 ];
 

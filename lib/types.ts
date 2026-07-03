@@ -313,6 +313,7 @@ export interface RiderListItem {
   phone: string | null;
   status: RiderStatus;
   active: boolean;
+  available: boolean;
   verifiedAt: string | null;
   createdAt: string;
 }

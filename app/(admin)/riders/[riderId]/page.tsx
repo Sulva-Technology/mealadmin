@@ -63,6 +63,12 @@ export default function RiderDetailPage() {
                     <Field label="Phone">{r.phone ?? '—'}</Field>
                     <Field label="Campus">{campusName(r.campusId)}</Field>
                     <Field label="Active">{r.active ? 'Yes' : 'No'}</Field>
+                    <Field label="Online">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full ${r.available ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                        {r.available ? 'Online' : 'Offline'}
+                      </span>
+                    </Field>
                     <Field label="Verified At">{formatDateTime(r.verifiedAt)}</Field>
                     <Field label="User ID">{r.userId}</Field>
                     <Field label="Created">{formatDateTime(r.createdAt)}</Field>
