@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { TextField, TextArea, Select } from '@/components/ui/Inputs';
 import { DataTable } from '@/components/ui/DataTable';
-import type { VendorInvitation, VendorInvitationCreated } from '@/lib/types';
+import type { VendorInvitation, VendorInvitationCreated, VendorUserRole } from '@/lib/types';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -51,12 +51,10 @@ export default function VendorDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({ displayName: '', description: '', phone: '', active: true });
-  const [userOpen, setUserOpen] = useState(false);
-  const [userId, setUserId] = useState('');
-  const [userRole, setUserRole] = useState<'owner' | 'staff'>('staff');
   const [suspendOpen, setSuspendOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<VendorUserRole>('staff');
   const [inviteHours, setInviteHours] = useState(72);
   const [inviteResult, setInviteResult] = useState<VendorInvitationCreated | null>(null);
   const [copied, setCopied] = useState(false);
@@ -71,18 +69,17 @@ export default function VendorDetailPage() {
   const suspend = useApiAction(() => api.suspendVendor(vendorId), {
     invalidate, success: 'Vendor suspended.', onSuccess: () => setSuspendOpen(false),
   });
-  const addUser = useApiAction(() => api.addVendorUser(vendorId, { userId, role: userRole }), {
-    invalidate, success: 'Vendor user added.', onSuccess: () => { setUserOpen(false); setUserId(''); },
-  });
   const invite = useApiAction(
-    () => api.createVendorInvitation(vendorId, { email: inviteEmail, expiresInHours: inviteHours }),
+    () => api.createVendorInvitation(vendorId, { email: inviteEmail, role: inviteRole, expiresInHours: inviteHours }),
     {
       invalidate: [['vendor', vendorId, 'invitations']],
       onSuccess: (res) => { setInviteResult(res.data); setInviteEmail(''); setCopied(false); },
     },
   );
 
-  const closeInvite = () => { setInviteOpen(false); setInviteResult(null); setInviteEmail(''); setInviteHours(72); };
+  const closeInvite = () => {
+    setInviteOpen(false); setInviteResult(null); setInviteEmail(''); setInviteRole('staff'); setInviteHours(72);
+  };
   const copyInviteUrl = async () => {
     if (!inviteResult) return;
     try {
@@ -152,8 +149,7 @@ export default function VendorDetailPage() {
                     ) : (
                       <Button className="w-full" variant="danger" onClick={() => setSuspendOpen(true)}>Suspend</Button>
                     )}
-                    <Button className="w-full" variant="subtle" onClick={() => setUserOpen(true)}>Add Vendor User</Button>
-                    <Button className="w-full" variant="subtle" onClick={() => setInviteOpen(true)}>Invite Vendor Owner</Button>
+                    <Button className="w-full" variant="subtle" onClick={() => setInviteOpen(true)}>Invite Vendor User</Button>
                   </div>
                 </Card>
               </div>
@@ -165,6 +161,7 @@ export default function VendorDetailPage() {
                     rowKey={(r) => r.id}
                     columns={[
                       { header: 'Email', render: (r) => r.email },
+                      { header: 'Role', render: (r) => <span className="capitalize">{r.role}</span> },
                       { header: 'Status', render: (r) => {
                         const s = invitationStatus(r);
                         return <StatusBadge status={s.label} tone={s.tone} />;
@@ -202,23 +199,6 @@ export default function VendorDetailPage() {
         </div>
       </Modal>
 
-      <Modal
-        open={userOpen} onClose={() => setUserOpen(false)} title="Add Vendor User"
-        footer={<>
-          <Button variant="ghost" onClick={() => setUserOpen(false)}>Cancel</Button>
-          <Button loading={addUser.isPending} disabled={!userId} onClick={() => addUser.mutate()}>Add</Button>
-        </>}
-      >
-        <div className="space-y-4">
-          <TextField label="User ID (UUID)" value={userId} onChange={(e) => setUserId(e.target.value)} />
-          <Select label="Role" value={userRole} onChange={(e) => setUserRole(e.target.value as 'owner' | 'staff')}>
-            <option value="staff">Staff</option>
-            <option value="owner">Owner</option>
-          </Select>
-        </div>
-      </Modal>
-
-
       <ConfirmDialog
         open={suspendOpen} onClose={() => setSuspendOpen(false)} onConfirm={() => suspend.mutate()}
         loading={suspend.isPending} danger confirmLabel="Suspend"
@@ -226,7 +206,7 @@ export default function VendorDetailPage() {
       />
 
       <Modal
-        open={inviteOpen} onClose={closeInvite} title="Invite Vendor Owner"
+        open={inviteOpen} onClose={closeInvite} title="Invite Vendor User"
         footer={inviteResult ? (
           <Button onClick={closeInvite}>Done</Button>
         ) : (
@@ -265,10 +245,17 @@ export default function VendorDetailPage() {
         ) : (
           <div className="space-y-4">
             <TextField
-              label="Owner email" type="email" value={inviteEmail}
+              label="Email" type="email" value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              hint="Sent to whoever should accept ownership of this vendor."
+              hint="A signup link is generated for whoever should accept this invite."
             />
+            <Select
+              label="Role" value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value as VendorUserRole)}
+            >
+              <option value="staff">Staff</option>
+              <option value="owner">Owner</option>
+            </Select>
             <TextField
               label="Expires in (hours)" type="number" min={1} max={168}
               value={inviteHours}

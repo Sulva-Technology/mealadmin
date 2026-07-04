@@ -228,7 +228,7 @@ export const api = {
     request<ItemEnvelope<VendorPerformance>>(`/admin/vendors/${id}/performance`),
   getVendorInvitations: (id: string, q?: Query) =>
     request<ListEnvelope<VendorInvitation>>(`/admin/vendors/${id}/invitations${qs(q)}`),
-  createVendorInvitation: (id: string, body: { email: string; expiresInHours?: number }) =>
+  createVendorInvitation: (id: string, body: { email: string; role: 'owner' | 'staff'; expiresInHours?: number }) =>
     post(`/admin/vendors/${id}/invitations`, body) as Promise<ItemEnvelope<VendorInvitationCreated>>,
 
   // Riders

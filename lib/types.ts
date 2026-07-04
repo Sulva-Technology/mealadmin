@@ -494,19 +494,6 @@ export interface VendorPerformance {
   reviewCount?: number;
   averageVendorRating?: number | null;
 }
-export interface VendorInvitation {
-  id: string;
-  vendorId: string;
-  email: string;
-  createdByAdminId: string;
-  expiresAt: string;
-  acceptedAt: string | null;
-  acceptedByUserId: string | null;
-  revokedAt: string | null;
-  createdAt: string;
-  inviteUrl?: string;
-}
-
 // ---- Riders ----------------------------------------------------------------
 
 export interface RiderListItem {
@@ -662,11 +649,13 @@ export interface AdminMembership {
 // ---- Vendor invitations -----------------------------------------------------
 
 export type VendorInvitationStatus = 'pending' | 'accepted' | 'revoked';
+export type VendorUserRole = 'owner' | 'staff';
 
 export interface VendorInvitation {
   id: string;
   vendorId: string;
   email: string;
+  role: VendorUserRole;
   createdByAdminId: string;
   expiresAt: string;
   acceptedAt: string | null;

@@ -145,6 +145,34 @@ Mutation endpoints:
 - `POST /v1/admin/users/:id/escalations` body `{ reason: string }`
 - `POST /v1/admin/users/:id/issues/resolve` body `{ note?: string }`
 
+## Vendor Invitation Endpoints (wired)
+
+The admin UI onboards vendor users **by email invite + signup link only**
+(the raw-UUID "Add Vendor User" flow was removed). Both `owner` and `staff`
+are invited through the same path. Backend implemented in `mealdirectbackend`
+(migration `20260704000500_vendor_invitation_role.sql`).
+
+`GET /v1/admin/vendors/:id/invitations`
+
+Lists invitations, newest first. Response items: `id`, `vendorId`, `email`,
+`role` (`owner`|`staff`), `createdByAdminId`, `expiresAt`, `acceptedAt`,
+`acceptedByUserId`, `revokedAt`, `createdAt`. (Previously 404 — now added.)
+
+`POST /v1/admin/vendors/:id/invitations`
+
+Body: `{ email: string; role: 'owner' | 'staff'; expiresInHours?: number }`
+(`role` defaults to `staff`; `expiresInHours` 1–168, default 72).
+Response: the item fields above **plus `inviteUrl`** (one-time signup link;
+raw token is not stored and never retrievable again).
+
+Accept flow (`POST /v1/auth/vendor/accept-invite`): visiting `inviteUrl` lets
+the recipient sign up and attaches them to the vendor with the **invited
+`role`** (no longer hardcoded to `owner`), setting `acceptedAt` /
+`acceptedByUserId`.
+
+`POST /v1/admin/vendors/:id/users` body `{ userId: string; role }` still exists
+for linking an already-existing user by id, but is no longer surfaced in the UI.
+
 ## Still Deferred
 
 - `GET/POST /v1/admin/promotions*` - out of scope.
