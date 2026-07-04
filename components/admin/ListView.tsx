@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
+import { RefreshCw } from 'lucide-react';
 import type { ListEnvelope } from '@/lib/types';
 import type { Query } from '@/lib/api';
 import { useApiQuery } from '@/lib/hooks';
@@ -8,6 +9,7 @@ import { Card } from '@/components/ui/Page';
 import { AsyncBoundary } from '@/components/ui/Page';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination, useCursorList } from '@/components/ui/Pagination';
+import { Button } from '@/components/ui/Button';
 
 /**
  * Drives a paginated admin list: owns cursor/limit, merges parent filter
@@ -36,7 +38,12 @@ export function ListView<T>({
 
   return (
     <>
-      {toolbar && <div className="mb-4">{toolbar}</div>}
+      <div className="mb-4 flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+        <div className="flex-1">{toolbar}</div>
+        <Button size="sm" variant="outline" onClick={() => query.refetch()} disabled={query.isLoading}>
+          <RefreshCw className="w-4 h-4" /> Refresh
+        </Button>
+      </div>
       <Card className="overflow-hidden">
         <AsyncBoundary query={query} empty={empty} isEmpty={(d) => d.data.length === 0}>
           {(data) => (

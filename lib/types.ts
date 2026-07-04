@@ -39,7 +39,13 @@ export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
 export const INVENTORY_STATES = ['available', 'low', 'sold_out'] as const;
 export type InventoryState = (typeof INVENTORY_STATES)[number];
 
-export type AdminRole = 'campus_admin' | 'super_admin';
+export type AdminRole =
+  | 'super_admin'
+  | 'finance_admin'
+  | 'operations_admin'
+  | 'support_admin'
+  | 'campus_admin'
+  | 'read_only_admin';
 export type BeneficiaryType = 'rider' | 'vendor';
 
 // ---- Money bounds (integer kobo) -------------------------------------------
@@ -63,6 +69,8 @@ export interface Pagination {
   hasMore: boolean;
   limit: number;
   nextCursor?: string;
+  previousCursor?: string;
+  total?: number;
 }
 export interface ListEnvelope<T> {
   data: T[];
@@ -239,6 +247,202 @@ export interface OrderListItem {
 }
 export interface Order extends Omit<OrderListItem, 'deliverySlotId' | 'locationId'> {
   customerEmail: string | null;
+  customerPhone?: string | null;
+  paymentReference?: string | null;
+}
+
+// ---- Payments / refunds / reconciliation / diagnostics --------------------
+
+export const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'abandoned', 'refunded', 'partially_refunded'] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+export const VERIFICATION_STATUSES = ['not_verified', 'verified', 'failed', 'mismatch', 'unavailable'] as const;
+export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
+
+export const REFUND_STATUSES = [
+  'none', 'requested', 'approved', 'rejected', 'initiated', 'processing', 'processed', 'failed', 'manually_resolved',
+] as const;
+export type RefundStatus = (typeof REFUND_STATUSES)[number];
+
+export const PAYMENT_QUEUE_KEYS = [
+  'paid_order_pending',
+  'pending_over_10_minutes',
+  'pending_over_30_minutes',
+  'failed_payments',
+  'webhook_failed',
+  'webhook_not_received',
+  'amount_mismatch',
+  'duplicate_payment_suspicion',
+  'refund_stuck',
+  'requires_finance_review',
+] as const;
+export type PaymentQueueKey = (typeof PAYMENT_QUEUE_KEYS)[number];
+
+export interface PaymentListItem {
+  id: string;
+  paymentReference: string;
+  paystackReference: string | null;
+  orderId: string;
+  orderNumber?: string | null;
+  customerId: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  vendorId: string;
+  vendorDisplayName: string;
+  campusId: string;
+  campusName?: string | null;
+  amountExpectedKobo: number;
+  amountPaidKobo: number;
+  currency: string;
+  paymentStatus: PaymentStatus | string;
+  orderStatus: OrderStatus | string;
+  webhookReceived: boolean;
+  verificationStatus: VerificationStatus | string;
+  refundStatus: RefundStatus | string;
+  requiresAdminReview: boolean;
+  settlementId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentEvent {
+  id: string;
+  type: string;
+  status?: string | null;
+  message?: string | null;
+  createdAt: string;
+}
+
+export interface PaymentNote {
+  id: string;
+  authorAdminId: string | null;
+  note: string;
+  createdAt: string;
+}
+
+export interface PaymentDetail extends PaymentListItem {
+  orderSummary?: {
+    id: string;
+    orderNumber?: string | null;
+    status: string;
+    totalKobo: number;
+    createdAt: string;
+  } | null;
+  customer?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
+  vendor?: {
+    id: string;
+    displayName: string;
+    email?: string | null;
+    phone?: string | null;
+  } | null;
+  riderDelivery?: {
+    riderId?: string | null;
+    riderName?: string | null;
+    status?: string | null;
+    batchId?: string | null;
+  } | null;
+  amountBreakdown?: Record<string, number | string | null>;
+  paystackVerification?: Record<string, unknown> | null;
+  webhookEvents?: WebhookEvent[];
+  refundHistory?: RefundListItem[];
+  adminNotes?: PaymentNote[];
+  adminActions?: PaymentEvent[];
+  timeline?: PaymentEvent[];
+  settlementImpact?: {
+    settlementId?: string | null;
+    affected: boolean;
+    message?: string | null;
+    amountKobo?: number | null;
+  } | null;
+}
+
+export interface PaymentQueueItem {
+  id: string;
+  paymentId?: string | null;
+  queue: PaymentQueueKey | string;
+  severity: 'low' | 'medium' | 'high' | 'critical' | string;
+  paymentReference: string;
+  orderId: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  amountKobo: number;
+  currency: string;
+  issueAgeSeconds: number;
+  suggestedAction: string;
+  reviewedAt?: string | null;
+}
+
+export interface RefundListItem {
+  id: string;
+  orderId: string;
+  paymentId?: string | null;
+  paymentReference: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  vendorDisplayName: string;
+  amountKobo: number;
+  currency: string;
+  reason: string;
+  status: RefundStatus | string;
+  requestedAt: string;
+  processedAt: string | null;
+  adminActionRequired: boolean;
+}
+
+export interface RefundDetail extends RefundListItem {
+  originalPayment?: PaymentListItem | null;
+  orderSummary?: {
+    id: string;
+    orderNumber?: string | null;
+    status: string;
+    totalKobo: number;
+  } | null;
+  customerReason?: string | null;
+  eligibilityState: string;
+  paystackRefundStatus?: string | null;
+  timeline?: PaymentEvent[];
+  adminNotes?: PaymentNote[];
+  settlementImpact?: {
+    settlementId?: string | null;
+    affected: boolean;
+    warning?: string | null;
+    amountKobo?: number | null;
+  } | null;
+}
+
+export interface SystemHealth {
+  api: string;
+  database: string;
+  paystack: string;
+  lastSuccessfulWebhookAt: string | null;
+  lastFailedWebhookAt: string | null;
+  failedWebhookCount: number;
+  pendingReconciliationCount: number;
+  failedJobsCount?: number | null;
+}
+
+export interface WebhookEvent {
+  id: string;
+  eventType: string;
+  paymentReference: string | null;
+  orderId: string | null;
+  signatureVerified: boolean;
+  processingStatus: string;
+  receivedAt: string;
+  processedAt: string | null;
+  failureReason: string | null;
+  retryCount: number;
+}
+
+export interface WebhookDetail extends WebhookEvent {
+  safeSummary?: Record<string, unknown> | null;
+  processingLogs?: PaymentEvent[];
 }
 
 // ---- Batches ---------------------------------------------------------------

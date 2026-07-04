@@ -1,6 +1,7 @@
 'use client';
 
 import { type ReactNode, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { QueryProvider } from '@/lib/query';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -10,9 +11,25 @@ import { Topbar } from './Topbar';
 import { PushRegistration } from './PushRegistration';
 import { BottomNav } from './BottomNav';
 import { Button } from '@/components/ui/Button';
+import { canAccessRoute } from '@/lib/rbac';
+
+function PermissionDenied() {
+  return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center text-center gap-4 px-6">
+      <ShieldAlert className="w-12 h-12 text-warning" />
+      <div>
+        <h1 className="text-xl font-space font-bold text-ink dark:text-white">Permission denied</h1>
+        <p className="text-muted text-sm mt-1 max-w-sm">
+          Your admin role cannot access this page. Backend authorization is still enforced for every request.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function Gate({ children }: { children: ReactNode }) {
   const { isLoading, session } = useSession();
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (isLoading) {
@@ -48,7 +65,9 @@ function Gate({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <Topbar onOpenMenu={() => setMobileMenuOpen(true)} />
         <main className="flex-1 overflow-y-auto hide-scrollbar p-4 md:p-8 pb-24 md:pb-8">
-          <div className="max-w-7xl mx-auto w-full">{children}</div>
+          <div className="max-w-7xl mx-auto w-full">
+            {canAccessRoute(session, pathname) ? children : <PermissionDenied />}
+          </div>
         </main>
         <BottomNav onOpenMenu={() => setMobileMenuOpen(true)} />
       </div>

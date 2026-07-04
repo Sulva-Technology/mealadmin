@@ -53,7 +53,7 @@ export default function AdminsPage() {
     },
   ];
 
-  const valid = userId && (role === 'super_admin' || campusId);
+  const valid = userId && (role !== 'campus_admin' || campusId);
 
   return (
     <>
@@ -79,6 +79,10 @@ export default function AdminsPage() {
           <TextField label="User ID (UUID)" value={userId} onChange={(e) => setUserId(e.target.value)} />
           <Select label="Role" value={role} onChange={(e) => setRole(e.target.value as AdminRole)}>
             <option value="campus_admin">Campus Admin</option>
+            <option value="finance_admin">Finance Admin</option>
+            <option value="operations_admin">Operations Admin</option>
+            <option value="support_admin">Support Admin</option>
+            <option value="read_only_admin">Read-only Admin</option>
             <option value="super_admin">Super Admin</option>
           </Select>
           {role === 'campus_admin' && (

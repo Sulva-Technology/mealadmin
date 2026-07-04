@@ -87,17 +87,17 @@ export function toneClass(tone: Tone): string {
 export function statusTone(status?: string | null): Tone {
   const s = (status ?? '').toLowerCase();
   if (
-    ['approved', 'active', 'verified', 'paid', 'delivered', 'completed', 'resolved', 'success', 'available']
+    ['approved', 'active', 'verified', 'paid', 'delivered', 'completed', 'resolved', 'success', 'available', 'received', 'processed']
       .includes(s)
   )
     return 'success';
   if (
-    ['pending', 'pending_payment', 'draft', 'open', 'investigating', 'preparing', 'low', 'processing']
+    ['pending', 'pending_payment', 'draft', 'open', 'investigating', 'preparing', 'low', 'processing', 'requested', 'initiated', 'not_received', 'not_verified', 'required']
       .includes(s)
   )
     return 'warning';
   if (
-    ['suspended', 'deactivated', 'cancelled', 'expired', 'refunded', 'rejected', 'failed', 'sold_out']
+    ['suspended', 'deactivated', 'cancelled', 'expired', 'refunded', 'rejected', 'failed', 'sold_out', 'mismatch', 'abandoned']
       .includes(s)
   )
     return 'danger';

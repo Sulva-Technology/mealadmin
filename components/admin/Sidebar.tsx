@@ -7,67 +7,22 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, Boxes, Package, Store, Bike, Users,
   Banknote, Star, AlertTriangle, BarChart3, ScrollText, ShieldCheck, Settings,
-  MapPin, Bell, Ruler,
+  MapPin, Bell, Ruler, CreditCard, Undo2, Activity, ListChecks,
   type LucideIcon,
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
+import { visibleNavGroups } from '@/lib/rbac';
 
-type Item = { name: string; href: string; icon: LucideIcon; superAdmin?: boolean };
-type Group = { label: string; items: Item[] };
-
-const GROUPS: Group[] = [
-  {
-    label: 'Operations',
-    items: [
-      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-      { name: 'Orders', href: '/orders', icon: ShoppingCart },
-      { name: 'Batches', href: '/batches', icon: Boxes },
-      { name: 'Inventory', href: '/inventory', icon: Package },
-    ],
-  },
-  {
-    label: 'Network',
-    items: [
-      { name: 'Vendors', href: '/vendors', icon: Store },
-      { name: 'Riders', href: '/riders', icon: Bike },
-      { name: 'Users', href: '/users', icon: Users },
-    ],
-  },
-  {
-    label: 'Finance & Quality',
-    items: [
-      { name: 'Settlements', href: '/settlements', icon: Banknote },
-      { name: 'Escalations', href: '/escalations', icon: AlertTriangle },
-      { name: 'Reviews', href: '/reviews', icon: Star },
-    ],
-  },
-  {
-    label: 'Insights',
-    items: [
-      { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-      { name: 'Audit Logs', href: '/audit-logs', icon: ScrollText },
-    ],
-  },
-  {
-    label: 'Configuration',
-    items: [
-      { name: 'Campuses', href: '/campuses', icon: MapPin },
-      { name: 'Unit Types', href: '/unit-types', icon: Ruler },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { name: 'Admins', href: '/admins', icon: ShieldCheck, superAdmin: true },
-      { name: 'Notifications', href: '/notifications', icon: Bell },
-      { name: 'Settings', href: '/settings', icon: Settings },
-    ],
-  },
-];
+const ICONS: Record<string, LucideIcon> = {
+  LayoutDashboard, ShoppingCart, Boxes, Package, Store, Bike, Users,
+  Banknote, Star, AlertTriangle, BarChart3, ScrollText, ShieldCheck, Settings,
+  MapPin, Bell, Ruler, CreditCard, Undo2, Activity, ListChecks,
+};
 
 export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
-  const { isSuperAdmin } = useSession();
+  const { session } = useSession();
+  const groups = visibleNavGroups(session);
 
   useEffect(() => {
     onClose();
@@ -92,15 +47,14 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
       </div>
 
       <nav className="flex-1 overflow-y-auto px-4 py-2 hide-scrollbar space-y-6">
-        {GROUPS.map((group) => {
-          const items = group.items.filter((i) => !i.superAdmin || isSuperAdmin);
-          if (items.length === 0) return null;
+        {groups.map((group) => {
           return (
             <div key={group.label}>
               <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 ml-2">{group.label}</div>
               <div className="space-y-1">
-                {items.map((item) => {
+                {group.items.map((item) => {
                   const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                  const Icon = ICONS[item.icon] ?? LayoutDashboard;
                   return (
                     <Link
                       key={item.href}
@@ -111,7 +65,7 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
                           : 'text-muted hover:text-primary-strong hover:bg-surface/70 dark:hover:bg-ink/40'
                       }`}
                     >
-                      <item.icon className={`w-5 h-5 ${active ? 'text-primary' : 'text-muted'}`} />
+                      <Icon className={`w-5 h-5 ${active ? 'text-primary' : 'text-muted'}`} />
                       <span className="text-sm font-medium">{item.name}</span>
                       {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-md" />}
                     </Link>

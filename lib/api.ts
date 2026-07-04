@@ -12,6 +12,8 @@ import type {
   NotificationRecord, NotificationPreferences,
   UpdateNotificationPreferences, RegisterDeviceTokenPayload,
   MarkAllNotificationsReadResult,
+  PaymentListItem, PaymentDetail, PaymentQueueItem,
+  RefundListItem, RefundDetail, SystemHealth, WebhookEvent, WebhookDetail,
 } from '@/lib/types';
 
 /** Real backend base URL. Used server-side (login + proxy route handlers). */
@@ -151,10 +153,52 @@ export const api = {
   // Orders
   getOrders: (q?: Query) => request<ListEnvelope<OrderListItem>>(`/admin/orders${qs(q)}`),
   getOrder: (id: string) => request<ItemEnvelope<Order>>(`/admin/orders/${id}`),
+  addOrderNote: (id: string, body: { note: string }) =>
+    post(`/admin/orders/${id}/notes`, body),
+  escalateOrder: (id: string, body: { reason: string }) =>
+    post(`/admin/orders/${id}/escalations`, body),
   cancelOrder: (id: string, reason?: string) =>
     post(`/admin/orders/${id}/cancel`, { reason }),
   transitionOrder: (id: string, status: string, reason?: string) =>
     post(`/admin/orders/${id}/status-transition`, { status, reason }),
+
+  // Payments / reconciliation
+  getPayments: (q?: Query) => request<ListEnvelope<PaymentListItem>>(`/admin/payments${qs(q)}`),
+  getPayment: (id: string) => request<ItemEnvelope<PaymentDetail>>(`/admin/payments/${id}`),
+  verifyPayment: (id: string) => post(`/admin/payments/${id}/verify`),
+  markPaymentForReview: (id: string, body: { note?: string }) =>
+    post(`/admin/payments/${id}/review`, body),
+  createRefundForPayment: (id: string, body: { amountKobo: number; reason: string }) =>
+    post(`/admin/payments/${id}/refunds`, body),
+  addPaymentNote: (id: string, body: { note: string }) =>
+    post(`/admin/payments/${id}/notes`, body),
+  getPaymentQueues: (q?: Query) =>
+    request<ListEnvelope<PaymentQueueItem>>(`/admin/payments/problem-queues${qs(q)}`),
+  markPaymentQueueReviewed: (id: string, body: { note?: string }) =>
+    post(`/admin/payments/problem-queues/${id}/review`, body),
+
+  // Refunds
+  getRefunds: (q?: Query) => request<ListEnvelope<RefundListItem>>(`/admin/refunds${qs(q)}`),
+  getRefund: (id: string) => request<ItemEnvelope<RefundDetail>>(`/admin/refunds/${id}`),
+  approveRefund: (id: string, body: { note?: string }) =>
+    post(`/admin/refunds/${id}/approve`, body),
+  rejectRefund: (id: string, body: { reason: string }) =>
+    post(`/admin/refunds/${id}/reject`, body),
+  initiateRefund: (id: string, body: { amountKobo: number; reason: string }) =>
+    post(`/admin/refunds/${id}/initiate`, body),
+  retryRefund: (id: string) => post(`/admin/refunds/${id}/retry`),
+  markRefundManuallyResolved: (id: string, body: { note: string }) =>
+    post(`/admin/refunds/${id}/mark-manually-resolved`, body),
+  addRefundNote: (id: string, body: { note: string }) =>
+    post(`/admin/refunds/${id}/notes`, body),
+
+  // Health / webhooks
+  getSystemHealth: () => request<ItemEnvelope<SystemHealth>>('/admin/health'),
+  getWebhooks: (q?: Query) => request<ListEnvelope<WebhookEvent>>(`/admin/webhooks${qs(q)}`),
+  getWebhook: (id: string) => request<ItemEnvelope<WebhookDetail>>(`/admin/webhooks/${id}`),
+  retryWebhook: (id: string) => post(`/admin/webhooks/${id}/retry`),
+  markWebhookReviewed: (id: string, body: { note?: string }) =>
+    post(`/admin/webhooks/${id}/review`, body),
 
   // Batches
   getBatches: (q?: Query) => request<ListEnvelope<BatchListItem>>(`/admin/batches${qs(q)}`),
@@ -234,13 +278,19 @@ export const api = {
   // Users
   getUsers: (q?: Query) => request<ListEnvelope<UserRecord>>(`/admin/users${qs(q)}`),
   getUser: (id: string) => request<ItemEnvelope<UserRecord>>(`/admin/users/${id}`),
+  addUserNote: (id: string, body: { note: string }) =>
+    post(`/admin/users/${id}/notes`, body),
+  escalateUserIssue: (id: string, body: { reason: string }) =>
+    post(`/admin/users/${id}/escalations`, body),
+  markUserIssueResolved: (id: string, body: { note?: string }) =>
+    post(`/admin/users/${id}/issues/resolve`, body),
   suspendUser: (id: string) => post(`/admin/users/${id}/suspend`),
   activateUser: (id: string) => post(`/admin/users/${id}/activate`),
 
   // Admin memberships (super_admin only)
   getAdminMemberships: (q?: Query) =>
     request<ListEnvelope<AdminMembership>>(`/admin/admin-memberships${qs(q)}`),
-  createAdminMembership: (body: { userId: string; role: 'campus_admin' | 'super_admin'; campusId?: string }) =>
+  createAdminMembership: (body: { userId: string; role: AdminMembership['role']; campusId?: string }) =>
     post('/admin/admin-memberships', body),
   revokeAdminMembership: (id: string) => post(`/admin/admin-memberships/${id}/revoke`),
   activateAdminMembership: (id: string) => post(`/admin/admin-memberships/${id}/activate`),

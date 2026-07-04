@@ -68,8 +68,13 @@ export function AsyncBoundary<T>({
 }) {
   if (query.isLoading) {
     return (
-      <div className="p-12 flex items-center justify-center text-muted">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading…
+      <div className="p-6 space-y-3" aria-busy="true">
+        <div className="flex items-center text-muted text-sm">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading...
+        </div>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-12 rounded-xl bg-muted/10 animate-pulse" />
+        ))}
       </div>
     );
   }
@@ -78,7 +83,7 @@ export function AsyncBoundary<T>({
     return (
       <div className="p-12 flex flex-col items-center justify-center text-center gap-3">
         <AlertCircle className="w-8 h-8 text-danger" />
-        <p className="text-sm font-medium text-ink dark:text-white">Couldn’t load data</p>
+        <p className="text-sm font-medium text-ink dark:text-white">Could not load data</p>
         <p className="text-xs text-muted max-w-sm">{msg}</p>
         <Button size="sm" variant="subtle" onClick={() => query.refetch()}>
           <RefreshCw className="w-4 h-4" /> Retry

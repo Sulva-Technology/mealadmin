@@ -2,16 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingCart, Store, Menu } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, CreditCard, Menu } from 'lucide-react';
+import { useSession } from '@/lib/session';
+import { hasRole } from '@/lib/rbac';
 
 export function BottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = usePathname();
+  const { session } = useSession();
 
   const navItems = [
     { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Orders', href: '/orders', icon: ShoppingCart },
-    { name: 'Vendors', href: '/vendors', icon: Store },
-  ];
+    { name: 'Payments', href: '/payments', icon: CreditCard, roles: ['super_admin', 'finance_admin', 'support_admin', 'operations_admin', 'read_only_admin'] as const },
+  ].filter((item) => hasRole(session, item.roles ? [...item.roles] : undefined));
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-surface/90 dark:bg-ink/90 border-t border-white/60 dark:border-white/10 backdrop-blur-md pb-safe">

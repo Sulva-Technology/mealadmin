@@ -23,7 +23,7 @@ export function DataTable<T>({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
+      <table className="w-full min-w-[760px] table-fixed text-left border-collapse">
         <thead>
           <tr className="border-b border-muted/20 bg-canvas dark:bg-ink/50">
             {columns.map((c, i) => (

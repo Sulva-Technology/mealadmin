@@ -21,7 +21,12 @@ export function useCursorList(initialLimit = 20) {
     setStack((s) => [...s, cursor]);
     setCursor(nextCursor);
   };
-  const goPrev = () => {
+  const goPrev = (previousCursor?: string) => {
+    if (previousCursor !== undefined) {
+      setCursor(previousCursor || undefined);
+      setStack((s) => s.slice(0, -1));
+      return;
+    }
     setStack((s) => {
       if (s.length === 0) return s;
       const copy = [...s];
@@ -44,15 +49,17 @@ export function Pagination({
   limit: number;
   onLimit: (n: number) => void;
   canPrev: boolean;
-  onPrev: () => void;
+  onPrev: (previousCursor?: string) => void;
   onNext: (nextCursor?: string) => void;
 }) {
   const hasMore = pagination?.hasMore ?? false;
   const nextCursor = pagination?.nextCursor;
+  const previousCursor = pagination?.previousCursor;
+  const total = pagination?.total;
   return (
     <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-muted/10 text-sm">
       <div className="flex items-center gap-2 text-muted">
-        <span>{count} shown</span>
+        <span>{count} shown{typeof total === 'number' ? ` of ${total}` : ''}</span>
         <FilterSelect value={limit} onChange={(e) => onLimit(Number(e.target.value))}>
           {[20, 50, 100].map((n) => <option key={n} value={n}>{n} / page</option>)}
         </FilterSelect>
@@ -61,7 +68,7 @@ export function Pagination({
         )}
       </div>
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" disabled={!canPrev} onClick={onPrev}>
+        <Button size="sm" variant="outline" disabled={!canPrev && !previousCursor} onClick={() => onPrev(previousCursor)}>
           <ChevronLeft className="w-4 h-4" /> Prev
         </Button>
         <Button size="sm" variant="outline" disabled={!hasMore || !nextCursor} onClick={() => onNext(nextCursor)}>

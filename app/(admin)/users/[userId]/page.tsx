@@ -9,7 +9,10 @@ import { formatDateTime } from '@/lib/format';
 import { PageHeader, Card, Field, AsyncBoundary } from '@/components/ui/Page';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
-import { ConfirmDialog } from '@/components/ui/Modal';
+import { ConfirmDialog, Modal } from '@/components/ui/Modal';
+import { TextArea } from '@/components/ui/Inputs';
+import { PermissionAction } from '@/components/admin/Permission';
+import { CopyButton } from '@/components/admin/finance/FinanceUI';
 
 export default function UserDetailPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -18,11 +21,24 @@ export default function UserDetailPage() {
   const user = query.data?.data;
 
   const [suspendOpen, setSuspendOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [escalateOpen, setEscalateOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
+  const [supportText, setSupportText] = useState('');
   const invalidate = [['user', userId], ['users']];
   const suspend = useApiAction(() => api.suspendUser(userId), {
     invalidate, success: 'User suspended.', onSuccess: () => setSuspendOpen(false),
   });
   const activate = useApiAction(() => api.activateUser(userId), { invalidate, success: 'User activated.' });
+  const addNote = useApiAction(() => api.addUserNote(userId, { note: supportText }), {
+    invalidate, success: 'Internal note added.', onSuccess: () => { setNoteOpen(false); setSupportText(''); },
+  });
+  const escalate = useApiAction(() => api.escalateUserIssue(userId, { reason: supportText }), {
+    invalidate, success: 'Customer issue escalated.', onSuccess: () => { setEscalateOpen(false); setSupportText(''); },
+  });
+  const resolve = useApiAction(() => api.markUserIssueResolved(userId, { note: supportText || undefined }), {
+    invalidate, success: 'Customer issue marked resolved.', onSuccess: () => { setResolveOpen(false); setSupportText(''); },
+  });
 
   return (
     <>
@@ -50,17 +66,36 @@ export default function UserDetailPage() {
 
               <Card className="p-6 h-fit">
                 <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-4">Actions</h3>
-                {isSuperAdmin ? (
-                  <div className="space-y-3">
+                <div className="space-y-3">
+                  {isSuperAdmin ? (
+                    <>
                     {u.accountStatus === 'active' ? (
                       <Button className="w-full" variant="danger" onClick={() => setSuspendOpen(true)}>Suspend</Button>
                     ) : (
                       <Button className="w-full" loading={activate.isPending} onClick={() => activate.mutate()}>Activate</Button>
                     )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted">Account status changes require a super admin.</p>
-                )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted">Account status changes require a super admin.</p>
+                  )}
+                  <CopyButton value={u.email} label="Copy customer email" />
+                  <CopyButton value={u.phoneNumber} label="Copy customer phone" />
+                  <Button className="w-full" variant="outline" onClick={() => { window.location.href = `/orders?search=${encodeURIComponent(u.email ?? u.id)}`; }}>
+                    Open customer order history
+                  </Button>
+                  <Button className="w-full" variant="outline" onClick={() => { window.location.href = `/payments?search=${encodeURIComponent(u.email ?? u.phoneNumber ?? u.id)}`; }}>
+                    Open payment history
+                  </Button>
+                  <PermissionAction className="w-full" variant="subtle" action="support.note" onClick={() => setNoteOpen(true)}>
+                    Add internal note
+                  </PermissionAction>
+                  <PermissionAction className="w-full" variant="subtle" action="support.escalate" onClick={() => setEscalateOpen(true)}>
+                    Escalate issue
+                  </PermissionAction>
+                  <PermissionAction className="w-full" variant="subtle" action="support.resolve" onClick={() => setResolveOpen(true)}>
+                    Mark issue resolved
+                  </PermissionAction>
+                </div>
               </Card>
             </div>
           );
@@ -72,6 +107,33 @@ export default function UserDetailPage() {
         loading={suspend.isPending} danger confirmLabel="Suspend"
         title="Suspend User" message="Suspended users cannot place orders. Continue?"
       />
+      <Modal
+        open={noteOpen} onClose={() => setNoteOpen(false)} title="Add internal note"
+        footer={<>
+          <Button variant="ghost" onClick={() => setNoteOpen(false)}>Cancel</Button>
+          <PermissionAction action="support.note" loading={addNote.isPending} disabled={!supportText.trim()} onClick={() => addNote.mutate()}>Add internal note</PermissionAction>
+        </>}
+      >
+        <TextArea label="Internal note" value={supportText} onChange={(e) => setSupportText(e.target.value)} />
+      </Modal>
+      <Modal
+        open={escalateOpen} onClose={() => setEscalateOpen(false)} title="Escalate issue"
+        footer={<>
+          <Button variant="ghost" onClick={() => setEscalateOpen(false)}>Cancel</Button>
+          <PermissionAction action="support.escalate" loading={escalate.isPending} disabled={!supportText.trim()} onClick={() => escalate.mutate()}>Escalate issue</PermissionAction>
+        </>}
+      >
+        <TextArea label="Escalation reason" value={supportText} onChange={(e) => setSupportText(e.target.value)} />
+      </Modal>
+      <Modal
+        open={resolveOpen} onClose={() => setResolveOpen(false)} title="Mark issue resolved"
+        footer={<>
+          <Button variant="ghost" onClick={() => setResolveOpen(false)}>Cancel</Button>
+          <PermissionAction action="support.resolve" loading={resolve.isPending} onClick={() => resolve.mutate()}>Mark issue resolved</PermissionAction>
+        </>}
+      >
+        <TextArea label="Resolution note" value={supportText} onChange={(e) => setSupportText(e.target.value)} />
+      </Modal>
     </>
   );
 }

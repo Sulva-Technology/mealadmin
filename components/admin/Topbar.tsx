@@ -11,23 +11,17 @@ import { disablePush } from '@/lib/push';
 
 export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { session, isSuperAdmin, campuses, scopeCampusId, setScopeCampusId, campusName } = useSession();
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const notifications = useApiQuery(
     ['notifications', { limit: 20 }],
     () => api.getNotifications({ limit: 20 }),
     Boolean(session),
   );
   const unreadCount = getUnreadNotificationCount(notifications.data?.data ?? []);
-
-  // Restore saved preference on mount (falls back to system preference).
-  useEffect(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved) {
-      setDark(saved === 'dark');
-    } else {
-      setDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
@@ -69,7 +63,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
         {session && (
           <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-success/10 text-primary-strong">
             <ShieldCheck className="w-3.5 h-3.5" />
-            {session.role === 'super_admin' ? 'Super Admin' : 'Campus Admin'}
+            {session.role.split('_').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ')}
           </span>
         )}
 
