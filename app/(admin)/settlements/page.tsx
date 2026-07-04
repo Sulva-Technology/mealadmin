@@ -42,15 +42,17 @@ export default function SettlementsPage() {
   const [bId, setBId] = useState('');
   const [bDate, setBDate] = useState(todayISO());
 
-  const beneficiaryParams = { campusId: scopeCampusId ?? undefined, active: 'true', limit: 200 };
+  const vendorsParams = { campusId: scopeCampusId ?? undefined, status: 'approved', limit: 200 };
+  const ridersParams = { campusId: scopeCampusId ?? undefined, status: 'verified', limit: 200 };
+
   const vendors = useApiQuery(
-    ['vendors', 'settlement-picker', beneficiaryParams],
-    () => api.getVendors(beneficiaryParams),
+    ['vendors', 'settlement-picker', vendorsParams],
+    () => api.getVendors(vendorsParams),
     genOpen && bType === 'vendor',
   );
   const riders = useApiQuery(
-    ['riders', 'settlement-picker', beneficiaryParams],
-    () => api.getRiders(beneficiaryParams),
+    ['riders', 'settlement-picker', ridersParams],
+    () => api.getRiders(ridersParams),
     genOpen && bType === 'rider',
   );
   const beneficiaries = bType === 'vendor' ? vendors : riders;
