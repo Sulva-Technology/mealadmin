@@ -83,12 +83,14 @@ function QueuePreview() {
                   <p className="font-bold">{formatKobo(item.amountKobo)}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-4">
-                  <PermissionAction size="sm" variant="outline" action="payment.verify" loading={verify.isPending} onClick={() => verify.mutate(item.paymentId ?? item.id)}>
+                  <PermissionAction size="sm" variant="outline" action="payment.verify" disabled={!item.paymentId} loading={verify.isPending} onClick={() => item.paymentId && verify.mutate(item.paymentId)}>
                     <RefreshCw className="w-4 h-4" /> Verify with Paystack
                   </PermissionAction>
-                  <Link className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-muted/30 text-ink dark:text-muted hover:bg-surface font-medium" href={`/payments/${item.paymentId ?? item.id}`}>
-                    <Eye className="w-4 h-4" /> Open detail
-                  </Link>
+                  {item.paymentId && (
+                    <Link className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-muted/30 text-ink dark:text-muted hover:bg-surface font-medium" href={`/payments/${item.paymentId}`}>
+                      <Eye className="w-4 h-4" /> Open detail
+                    </Link>
+                  )}
                   <PermissionAction size="sm" variant="subtle" action="payment.review" loading={review.isPending} onClick={() => review.mutate(item.id)}>
                     <Flag className="w-4 h-4" /> Mark as reviewed
                   </PermissionAction>
