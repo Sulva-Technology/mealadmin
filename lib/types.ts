@@ -641,6 +641,12 @@ export interface UserRecord {
   createdAt: string;
 }
 
+/** Result of DELETE /admin/users/:id. `anonymized` when the user had order history. */
+export interface DeleteUserResult {
+  userId: string;
+  outcome: 'deleted' | 'anonymized';
+}
+
 // ---- Admin memberships -----------------------------------------------------
 
 export interface AdminMembership {

@@ -4,7 +4,7 @@ import type {
   VendorListItem, Vendor, VendorPerformance,
   RiderListItem, Rider, RiderAssignment, SettlementListItem,
   InventoryRow, EscalationListItem, Escalation,
-  Settlement, SettlementPreview, Review, UserRecord,
+  Settlement, SettlementPreview, Review, UserRecord, DeleteUserResult,
   AdminMembership, AnalyticsData, AuditLog,
   VendorInvitation, VendorInvitationCreated,
   Zone, CampusLocation, DeliverySlot, LocationType, UnitType,
@@ -286,6 +286,9 @@ export const api = {
     post(`/admin/users/${id}/issues/resolve`, body),
   suspendUser: (id: string) => post(`/admin/users/${id}/suspend`),
   activateUser: (id: string) => post(`/admin/users/${id}/activate`),
+  // Super-admin only. Anonymizes users with order history; hard-deletes the rest.
+  deleteUser: (id: string) =>
+    request<ItemEnvelope<DeleteUserResult>>(`/admin/users/${id}`, { method: 'DELETE' }),
 
   // Admin memberships (super_admin only)
   getAdminMemberships: (q?: Query) =>

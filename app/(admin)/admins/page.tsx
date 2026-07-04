@@ -25,7 +25,7 @@ export default function AdminsPage() {
   const invalidate = [['admin-memberships']];
   const grant = useApiAction(
     () => api.createAdminMembership({ userId, role, campusId: role === 'campus_admin' ? campusId : undefined }),
-    { invalidate, success: 'Membership granted.', onSuccess: () => { setOpen(false); setUserId(''); } },
+    { invalidate, success: 'Admin created. Ask them to sign out and back in for the role to take effect.', onSuccess: () => { setOpen(false); setUserId(''); } },
   );
   const revoke = useApiAction((id: string) => api.revokeAdminMembership(id), { invalidate, success: 'Membership revoked.' });
   const activate = useApiAction((id: string) => api.activateAdminMembership(id), { invalidate, success: 'Membership activated.' });
