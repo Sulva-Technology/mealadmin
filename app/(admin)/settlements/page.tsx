@@ -42,8 +42,8 @@ export default function SettlementsPage() {
   const [bId, setBId] = useState('');
   const [bDate, setBDate] = useState(todayISO());
 
-  const vendorsParams = { campusId: scopeCampusId ?? undefined, status: 'approved', limit: 200 };
-  const ridersParams = { campusId: scopeCampusId ?? undefined, status: 'verified', limit: 200 };
+  const vendorsParams = { campusId: scopeCampusId ?? undefined, status: 'approved', limit: 100 };
+  const ridersParams = { campusId: scopeCampusId ?? undefined, status: 'verified', limit: 100 };
 
   const vendors = useApiQuery(
     ['vendors', 'settlement-picker', vendorsParams],

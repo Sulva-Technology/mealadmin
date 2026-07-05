@@ -75,6 +75,8 @@ function qs(params?: Query): string {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined || v === null || v === '') continue;
+    // Backend caps list page size at 100; clamp so no caller can trip VALIDATION_FAILED.
+    if (k === 'limit') { sp.set(k, String(Math.min(Number(v) || 0, 100))); continue; }
     sp.set(k, String(v));
   }
   const s = sp.toString();
