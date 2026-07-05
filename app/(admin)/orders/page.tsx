@@ -6,30 +6,42 @@ import { useDebounced } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { ORDER_STATUSES, type OrderListItem } from '@/lib/types';
 import { formatKobo, formatDate, titleize } from '@/lib/format';
+import { useDispatchRef, type DispatchRef } from '@/lib/dispatch-ref';
 import { PageHeader } from '@/components/ui/Page';
 import { SearchInput, FilterSelect, TextField } from '@/components/ui/Inputs';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ListView } from '@/components/admin/ListView';
 import type { Column } from '@/components/ui/DataTable';
 
-const columns: Column<OrderListItem>[] = [
-  {
-    header: 'Order',
-    render: (o) => (
-      <div>
-        <div className="font-semibold text-ink dark:text-white">{o.orderNumber}</div>
-        <div className="text-xs text-muted">{formatDate(o.serviceDate)}</div>
-      </div>
-    ),
-  },
-  { header: 'Vendor', render: (o) => o.vendorDisplayName },
-  { header: 'Mode', render: (o) => titleize(o.deliveryMode) },
-  { header: 'Status', render: (o) => <StatusBadge status={o.orderStatus} /> },
-  { header: 'Total', align: 'right', render: (o) => <span className="font-bold">{formatKobo(o.totalKobo)}</span> },
-];
+function buildColumns(ref: DispatchRef): Column<OrderListItem>[] {
+  return [
+    {
+      header: 'Order',
+      render: (o) => {
+        const location = ref.locationLabel(o.locationId);
+        const time = ref.slotTime(o.deliverySlotId);
+        return (
+          <div>
+            <div className="font-semibold text-ink dark:text-white">{location ?? o.orderNumber}</div>
+            <div className="text-xs text-muted">
+              {formatDate(o.serviceDate)}{time ? ` · ${time}` : ''}
+            </div>
+            {location && <div className="text-[11px] text-muted font-mono">{o.orderNumber}</div>}
+          </div>
+        );
+      },
+    },
+    { header: 'Vendor', render: (o) => o.vendorDisplayName },
+    { header: 'Mode', render: (o) => titleize(o.deliveryMode) },
+    { header: 'Status', render: (o) => <StatusBadge status={o.orderStatus} /> },
+    { header: 'Total', align: 'right', render: (o) => <span className="font-bold">{formatKobo(o.totalKobo)}</span> },
+  ];
+}
 
 export default function OrdersPage() {
   const { scopeCampusId } = useSession();
+  const ref = useDispatchRef();
+  const columns = buildColumns(ref);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [date, setDate] = useState('');

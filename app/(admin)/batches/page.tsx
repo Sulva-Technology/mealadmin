@@ -4,31 +4,44 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { BATCH_STATUSES, type BatchListItem } from '@/lib/types';
-import { formatKobo, formatDate, titleize } from '@/lib/format';
+import { formatKobo, formatDate, formatTime, titleize } from '@/lib/format';
+import { useDispatchRef, type DispatchRef } from '@/lib/dispatch-ref';
 import { PageHeader } from '@/components/ui/Page';
 import { FilterSelect, TextField } from '@/components/ui/Inputs';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ListView } from '@/components/admin/ListView';
 import type { Column } from '@/components/ui/DataTable';
 
-const columns: Column<BatchListItem>[] = [
-  {
-    header: 'Batch',
-    render: (b) => (
-      <div>
-        <div className="font-semibold text-ink dark:text-white">{b.batchNumber}</div>
-        <div className="text-xs text-muted">{formatDate(b.serviceDate)}</div>
-      </div>
-    ),
-  },
-  { header: 'Vendor', render: (b) => b.vendorDisplayName },
-  { header: 'Orders', align: 'right', render: (b) => b.orderCount },
-  { header: 'Earnings', align: 'right', render: (b) => formatKobo(b.deliveryEarningsKobo) },
-  { header: 'Status', render: (b) => <StatusBadge status={b.status} /> },
-];
+function buildColumns(ref: DispatchRef): Column<BatchListItem>[] {
+  return [
+    {
+      header: 'Batch',
+      render: (b) => {
+        const zone = ref.zoneLabel(b.zoneId);
+        const delivery = ref.slotTime(b.deliverySlotId);
+        const created = formatTime(b.createdAt);
+        return (
+          <div>
+            <div className="font-semibold text-ink dark:text-white">{zone ?? b.batchNumber}</div>
+            <div className="text-xs text-muted">
+              {formatDate(b.serviceDate)}{delivery ? ` · Delivery ${delivery}` : ''}{created ? ` · Made ${created}` : ''}
+            </div>
+            {zone && <div className="text-[11px] text-muted font-mono">{b.batchNumber}</div>}
+          </div>
+        );
+      },
+    },
+    { header: 'Vendor', render: (b) => b.vendorDisplayName },
+    { header: 'Orders', align: 'right', render: (b) => b.orderCount },
+    { header: 'Earnings', align: 'right', render: (b) => formatKobo(b.deliveryEarningsKobo) },
+    { header: 'Status', render: (b) => <StatusBadge status={b.status} /> },
+  ];
+}
 
 export default function BatchesPage() {
   const { scopeCampusId } = useSession();
+  const ref = useDispatchRef();
+  const columns = buildColumns(ref);
   const [status, setStatus] = useState('');
   const [date, setDate] = useState('');
 

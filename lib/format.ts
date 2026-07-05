@@ -49,6 +49,20 @@ export function formatDate(value?: string | null, timeZone?: string): string {
   return new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium', timeZone }).format(d);
 }
 
+/** ISO datetime -> 24-hour "18:20" clock. Campus tz when provided. */
+export function formatTime(value?: string | null, timeZone?: string): string {
+  if (!value) return '';
+  const d = new Date(value.replace(' ', 'T'));
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone }).format(d);
+}
+
+/** Backend clock string "HH:MM:SS" -> "HH:MM" (delivery-slot times). */
+export function formatClock(value?: string | null): string {
+  if (!value) return '';
+  return value.slice(0, 5);
+}
+
 /** Today as YYYY-MM-DD in the user's local timezone (for default service-date filters). */
 export function todayISO(): string {
   const d = new Date();
