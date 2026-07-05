@@ -58,6 +58,10 @@ export function useDispatchRef(): DispatchRef {
   const zones = zoneQs.flatMap((q) => q.data?.data ?? []);
   const slots = slotQs.flatMap((q) => q.data?.data ?? []);
 
+  const locationKey = locations.map((l) => l.id).join(',');
+  const zoneKey = zones.map((z) => z.id).join(',');
+  const slotKey = slots.map((s) => s.id).join(',');
+
   return useMemo<DispatchRef>(() => {
     const locMap = new Map<string, CampusLocation>(locations.map((l) => [l.id, l]));
     const zoneMap = new Map<string, Zone>(zones.map((z) => [z.id, z]));
@@ -80,9 +84,5 @@ export function useDispatchRef(): DispatchRef {
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    locations.map((l) => l.id).join(','),
-    zones.map((z) => z.id).join(','),
-    slots.map((s) => s.id).join(','),
-  ]);
+  }, [locationKey, zoneKey, slotKey]);
 }
