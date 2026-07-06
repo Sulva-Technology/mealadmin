@@ -4,7 +4,7 @@ import type {
   VendorListItem, Vendor, VendorPerformance,
   RiderListItem, Rider, RiderAssignment, SettlementListItem,
   InventoryRow, EscalationListItem, Escalation,
-  Settlement, SettlementPreview, PayoutTransferRecord, Review, UserRecord, DeleteUserResult,
+  Settlement, SettlementPreview, PayoutTransferRecord, PayoutDestination, Review, UserRecord, DeleteUserResult,
   AdminMembership, AnalyticsData, AuditLog,
   VendorInvitation, VendorInvitationCreated,
   Zone, CampusLocation, DeliverySlot, LocationType, UnitType,
@@ -136,6 +136,8 @@ export const api = {
     post(`/admin/campuses/${campusId}/locations`, body),
   updateLocation: (locationId: string, body: Partial<{ zoneId: string; name: string; slug: string; type: LocationType; deliveryInstructions: string; active: boolean; displayOrder: number }>) =>
     patch(`/admin/locations/${locationId}`, body),
+  deleteLocation: (locationId: string) =>
+    request<void>(`/admin/locations/${locationId}`, { method: 'DELETE' }),
 
   // Delivery slots / available times (per campus)
   getDeliverySlots: (campusId: string, q?: Query) =>
@@ -271,6 +273,8 @@ export const api = {
     post(`/admin/settlements/${id}/mark-paid`, { externalReference }),
   paySettlement: (id: string) =>
     request<ItemEnvelope<PayoutTransferRecord>>(`/admin/settlements/${id}/pay`, { method: 'POST' }),
+  getSettlementPayoutAccount: (id: string) =>
+    request<ItemEnvelope<PayoutDestination>>(`/admin/settlements/${id}/payout-account`),
   addSettlementAdjustment: (id: string, body: { amountKobo: number; description: string }) =>
     post(`/admin/settlements/${id}/adjustments`, body),
 

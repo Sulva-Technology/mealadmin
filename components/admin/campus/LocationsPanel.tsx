@@ -7,7 +7,7 @@ import { LOCATION_TYPES, type CampusLocation, type LocationType } from '@/lib/ty
 import { titleize } from '@/lib/format';
 import { Card, AsyncBoundary } from '@/components/ui/Page';
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
+import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { TextField, Select, TextArea } from '@/components/ui/Inputs';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
@@ -27,6 +27,7 @@ export function LocationsPanel({ campusId }: { campusId: string }) {
 
   const [editing, setEditing] = useState<CampusLocation | null>(null);
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<CampusLocation | null>(null);
   const [form, setForm] = useState<Form>(empty);
   const [slugDirty, setSlugDirty] = useState(false);
 
@@ -36,6 +37,11 @@ export function LocationsPanel({ campusId }: { campusId: string }) {
       return editing ? api.updateLocation(editing.id, body) : api.createLocation(campusId, body);
     },
     { invalidate: [key], success: 'Location saved.', onSuccess: () => close() },
+  );
+
+  const remove = useApiAction(
+    () => api.deleteLocation(deleting!.id),
+    { invalidate: [key], success: 'Location deleted.', onSuccess: () => setDeleting(null) },
   );
 
   const close = () => { setEditing(null); setCreating(false); setForm(empty); setSlugDirty(false); };
@@ -51,7 +57,15 @@ export function LocationsPanel({ campusId }: { campusId: string }) {
     { header: 'Type', render: (l) => titleize(l.type) },
     { header: 'Order', align: 'right', render: (l) => l.displayOrder },
     { header: 'Status', render: (l) => <StatusBadge status={l.active ? 'active' : 'inactive'} /> },
-    { header: '', align: 'right', render: (l) => <Button size="sm" variant="outline" onClick={() => openEdit(l)}>Edit</Button> },
+    {
+      header: '', align: 'right',
+      render: (l) => (
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="outline" onClick={() => openEdit(l)}>Edit</Button>
+          <Button size="sm" variant="outline" onClick={() => setDeleting(l)}>Delete</Button>
+        </div>
+      ),
+    },
   ];
 
   const validSlug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug);
@@ -104,6 +118,13 @@ export function LocationsPanel({ campusId }: { campusId: string }) {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleting} onClose={() => setDeleting(null)} onConfirm={() => remove.mutate()}
+        loading={remove.isPending} confirmLabel="Delete" danger
+        title="Delete Location"
+        message={`Delete "${deleting?.name}"? If it is referenced by existing orders, deactivate it instead.`}
+      />
     </Card>
   );
 }

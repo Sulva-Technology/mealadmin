@@ -25,6 +25,14 @@ export default function SettlementDetailPage() {
   const [adjOpen, setAdjOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [showAccount, setShowAccount] = useState(false);
+
+  const payoutAccount = useApiQuery(
+    ['payout-account', id],
+    () => api.getSettlementPayoutAccount(id),
+    showAccount,
+  );
+  const bank = payoutAccount.data?.data;
 
   const invalidate = [['settlement', id], ['settlements']];
   const approve = useApiAction(() => api.approveSettlement(id), {
@@ -76,8 +84,37 @@ export default function SettlementDetailPage() {
                   <Button className="w-full" disabled={st.status !== 'draft'} onClick={() => setApproveOpen(true)}>Approve</Button>
                   <Button className="w-full" disabled={st.status !== 'approved'} onClick={() => setPayoutOpen(true)}>Pay Now (Paystack)</Button>
                   <Button className="w-full" variant="outline" disabled={st.status !== 'approved'} onClick={() => setPayOpen(true)}>Mark Paid (manual)</Button>
+                  <Button className="w-full" variant="outline" onClick={() => setShowAccount(true)}>Show Bank Account</Button>
                   <Button className="w-full" variant="outline" onClick={() => setAdjOpen(true)}>Add Adjustment</Button>
                 </div>
+
+                {showAccount && (
+                  <div className="mt-4 rounded-xl bg-canvas dark:bg-ink/60 p-4 text-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-muted uppercase tracking-wider">Bank Account</span>
+                      <button className="text-xs text-muted hover:text-ink dark:hover:text-white" onClick={() => setShowAccount(false)}>Hide</button>
+                    </div>
+                    {payoutAccount.isLoading && <p className="text-muted">Loading…</p>}
+                    {payoutAccount.isError && <p className="text-danger">{(payoutAccount.error as Error)?.message ?? 'No bank account on file.'}</p>}
+                    {bank && (
+                      <dl className="space-y-2">
+                        <div className="flex justify-between gap-3"><dt className="text-muted">Bank</dt><dd className="font-medium text-right">{bank.bankName}</dd></div>
+                        <div className="flex justify-between gap-3"><dt className="text-muted">Account name</dt><dd className="font-medium text-right">{bank.accountName || '—'}</dd></div>
+                        <div className="flex justify-between gap-3 items-center">
+                          <dt className="text-muted">Account number</dt>
+                          <dd className="font-mono font-bold text-right flex items-center gap-2">
+                            {bank.accountNumber}
+                            <button
+                              className="text-xs text-muted hover:text-ink dark:hover:text-white"
+                              onClick={() => navigator.clipboard?.writeText(bank.accountNumber)}
+                            >Copy</button>
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-3 pt-1 border-t border-muted/20"><dt className="text-muted">Amount to pay</dt><dd className="font-bold text-right">{formatKobo(bank.payableKobo)}</dd></div>
+                      </dl>
+                    )}
+                  </div>
+                )}
               </Card>
             </div>
           );
