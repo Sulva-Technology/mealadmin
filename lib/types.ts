@@ -591,6 +591,15 @@ export interface Settlement extends Omit<SettlementListItem, 'createdAt'> {
   refundsKobo: number;
   adjustmentsKobo: number;
 }
+/** Automated payout transfer initiated via Paystack for a settlement. */
+export interface PayoutTransferRecord {
+  id: string;
+  settlementId: string;
+  reference: string;
+  amountKobo: number;
+  providerTransferCode: string | null;
+  status: string;
+}
 export interface SettlementPreview {
   beneficiaryType: BeneficiaryType;
   beneficiaryId: string;

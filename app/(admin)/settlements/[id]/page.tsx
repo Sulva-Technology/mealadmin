@@ -19,6 +19,7 @@ export default function SettlementDetailPage() {
   const s = query.data?.data;
 
   const [approveOpen, setApproveOpen] = useState(false);
+  const [payoutOpen, setPayoutOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [reference, setReference] = useState('');
   const [adjOpen, setAdjOpen] = useState(false);
@@ -28,6 +29,10 @@ export default function SettlementDetailPage() {
   const invalidate = [['settlement', id], ['settlements']];
   const approve = useApiAction(() => api.approveSettlement(id), {
     invalidate, success: 'Settlement approved.', onSuccess: () => setApproveOpen(false),
+  });
+  const payout = useApiAction(() => api.paySettlement(id), {
+    invalidate, success: 'Payout initiated. It settles once Paystack confirms the transfer.',
+    onSuccess: () => setPayoutOpen(false),
   });
   const markPaid = useApiAction(() => api.markSettlementPaid(id, reference), {
     invalidate, success: 'Marked paid.', onSuccess: () => { setPayOpen(false); setReference(''); },
@@ -69,7 +74,8 @@ export default function SettlementDetailPage() {
                 <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-4">Reconciliation</h3>
                 <div className="space-y-3">
                   <Button className="w-full" disabled={st.status !== 'draft'} onClick={() => setApproveOpen(true)}>Approve</Button>
-                  <Button className="w-full" disabled={st.status !== 'approved'} onClick={() => setPayOpen(true)}>Mark Paid</Button>
+                  <Button className="w-full" disabled={st.status !== 'approved'} onClick={() => setPayoutOpen(true)}>Pay Now (Paystack)</Button>
+                  <Button className="w-full" variant="outline" disabled={st.status !== 'approved'} onClick={() => setPayOpen(true)}>Mark Paid (manual)</Button>
                   <Button className="w-full" variant="outline" onClick={() => setAdjOpen(true)}>Add Adjustment</Button>
                 </div>
               </Card>
@@ -82,6 +88,13 @@ export default function SettlementDetailPage() {
         open={approveOpen} onClose={() => setApproveOpen(false)} onConfirm={() => approve.mutate()}
         loading={approve.isPending} confirmLabel="Approve"
         title="Approve Settlement" message="Approve this settlement for payout?"
+      />
+
+      <ConfirmDialog
+        open={payoutOpen} onClose={() => setPayoutOpen(false)} onConfirm={() => payout.mutate()}
+        loading={payout.isPending} confirmLabel="Send Payout"
+        title="Send Automated Payout"
+        message={`Transfer ${s ? formatKobo(s.payableKobo) : ''} to the beneficiary's bank account via Paystack? This moves real money and cannot be undone.`}
       />
 
       <Modal

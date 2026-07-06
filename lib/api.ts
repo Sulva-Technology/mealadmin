@@ -4,7 +4,7 @@ import type {
   VendorListItem, Vendor, VendorPerformance,
   RiderListItem, Rider, RiderAssignment, SettlementListItem,
   InventoryRow, EscalationListItem, Escalation,
-  Settlement, SettlementPreview, Review, UserRecord, DeleteUserResult,
+  Settlement, SettlementPreview, PayoutTransferRecord, Review, UserRecord, DeleteUserResult,
   AdminMembership, AnalyticsData, AuditLog,
   VendorInvitation, VendorInvitationCreated,
   Zone, CampusLocation, DeliverySlot, LocationType, UnitType,
@@ -269,6 +269,8 @@ export const api = {
   approveSettlement: (id: string) => post(`/admin/settlements/${id}/approve`),
   markSettlementPaid: (id: string, externalReference: string) =>
     post(`/admin/settlements/${id}/mark-paid`, { externalReference }),
+  paySettlement: (id: string) =>
+    request<ItemEnvelope<PayoutTransferRecord>>(`/admin/settlements/${id}/pay`, { method: 'POST' }),
   addSettlementAdjustment: (id: string, body: { amountKobo: number; description: string }) =>
     post(`/admin/settlements/${id}/adjustments`, body),
 
