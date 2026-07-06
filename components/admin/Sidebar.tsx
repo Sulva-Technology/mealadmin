@@ -40,13 +40,13 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-[260px] flex-shrink-0 border-r border-white/60 dark:border-white/10 glass-panel h-screen overflow-hidden flex flex-col transition-transform duration-300 ease-in-out ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-[260px] flex-shrink-0 border-r border-white/60 dark:border-white/10 glass-panel h-[100dvh] md:h-screen overflow-hidden flex flex-col transition-transform duration-300 ease-in-out ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
       <div className="p-6 flex items-center gap-3">
         <Image src="/logo.png" alt="Meal Direct" width={32} height={32} priority className="w-8 h-8 rounded-xl shadow-lg shadow-primary/30" />
         <span className="font-space font-bold text-lg text-ink dark:text-white tracking-tight">Meal Direct</span>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-4 py-2 hide-scrollbar space-y-6">
+      <nav className="flex-1 overflow-y-auto overscroll-contain px-4 py-2 hide-scrollbar space-y-6">
         {groups.map((group) => {
           return (
             <div key={group.label}>
