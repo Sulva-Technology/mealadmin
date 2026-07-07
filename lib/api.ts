@@ -149,9 +149,9 @@ export const api = {
 
   // Unit types (global catalog, shared by all vendors)
   getUnitTypes: (q?: Query) => request<ListEnvelope<UnitType>>(`/admin/unit-types${qs(q)}`),
-  createUnitType: (body: { code: string; displayName: string; countsTowardSpoonLimit: boolean }) =>
+  createUnitType: (body: { code: string; displayName: string; countsTowardSpoonLimit: boolean; triggersTakeawayFee?: boolean; maxQuantity?: number | null }) =>
     post('/admin/unit-types', body) as Promise<ItemEnvelope<UnitType>>,
-  updateUnitType: (id: string, body: Partial<{ displayName: string; countsTowardSpoonLimit: boolean; active: boolean }>) =>
+  updateUnitType: (id: string, body: Partial<{ displayName: string; countsTowardSpoonLimit: boolean; triggersTakeawayFee: boolean; maxQuantity: number | null; active: boolean }>) =>
     patch(`/admin/unit-types/${id}`, body) as Promise<ItemEnvelope<UnitType>>,
 
   // Orders

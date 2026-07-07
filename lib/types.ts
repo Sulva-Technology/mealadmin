@@ -187,7 +187,12 @@ export interface UnitType {
   /** Immutable machine key, set at creation. */
   code: string;
   displayName: string;
+  /** Counts toward the three-spoon takeaway package cap (swallows). */
   countsTowardSpoonLimit: boolean;
+  /** Pulls the flat takeaway/service fee. Independent of the spoon cap. */
+  triggersTakeawayFee: boolean;
+  /** Max quantity per order line for this unit type; null = unlimited. */
+  maxQuantity: number | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;

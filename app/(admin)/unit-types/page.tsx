@@ -11,8 +11,20 @@ import { TextField } from '@/components/ui/Inputs';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 
-type Form = { code: string; displayName: string; countsTowardSpoonLimit: boolean };
-const empty: Form = { code: '', displayName: '', countsTowardSpoonLimit: false };
+type Form = {
+  code: string;
+  displayName: string;
+  countsTowardSpoonLimit: boolean;
+  triggersTakeawayFee: boolean;
+  maxQuantity: string; // empty string = unlimited
+};
+const empty: Form = {
+  code: '',
+  displayName: '',
+  countsTowardSpoonLimit: false,
+  triggersTakeawayFee: false,
+  maxQuantity: '',
+};
 
 export default function UnitTypesPage() {
   const key = ['unit-types'];
@@ -25,8 +37,20 @@ export default function UnitTypesPage() {
   const close = () => { setEditing(null); setCreating(false); setForm(empty); };
   const openCreate = () => { setForm(empty); setCreating(true); };
   const openEdit = (u: UnitType) => {
-    setForm({ code: u.code, displayName: u.displayName, countsTowardSpoonLimit: u.countsTowardSpoonLimit });
+    setForm({
+      code: u.code,
+      displayName: u.displayName,
+      countsTowardSpoonLimit: u.countsTowardSpoonLimit,
+      triggersTakeawayFee: u.triggersTakeawayFee,
+      maxQuantity: u.maxQuantity == null ? '' : String(u.maxQuantity),
+    });
     setEditing(u);
+  };
+
+  // Parse the free-text max-quantity field into an integer or null (unlimited).
+  const parsedMaxQuantity = (): number | null => {
+    const t = form.maxQuantity.trim();
+    return t === '' ? null : Math.max(1, Math.floor(Number(t)));
   };
 
   // Code is immutable after creation, so edits only send the mutable fields.
@@ -35,8 +59,16 @@ export default function UnitTypesPage() {
       ? api.updateUnitType(editing.id, {
           displayName: form.displayName,
           countsTowardSpoonLimit: form.countsTowardSpoonLimit,
+          triggersTakeawayFee: form.triggersTakeawayFee,
+          maxQuantity: parsedMaxQuantity(),
         })
-      : api.createUnitType(form)),
+      : api.createUnitType({
+          code: form.code,
+          displayName: form.displayName,
+          countsTowardSpoonLimit: form.countsTowardSpoonLimit,
+          triggersTakeawayFee: form.triggersTakeawayFee,
+          maxQuantity: parsedMaxQuantity(),
+        })),
     { invalidate: [key], success: 'Unit type saved.', onSuccess: () => close() },
   );
 
@@ -48,7 +80,9 @@ export default function UnitTypesPage() {
   const columns: Column<UnitType>[] = [
     { header: 'Code', render: (u) => <span className="font-mono text-ink dark:text-white">{u.code}</span> },
     { header: 'Display Name', render: (u) => <span className="font-medium text-ink dark:text-white">{u.displayName}</span> },
-    { header: 'Counts toward spoon limit', render: (u) => (u.countsTowardSpoonLimit ? 'Yes' : 'No') },
+    { header: 'Spoon limit', render: (u) => (u.countsTowardSpoonLimit ? 'Yes' : 'No') },
+    { header: 'Takeaway fee', render: (u) => (u.triggersTakeawayFee ? 'Yes' : 'No') },
+    { header: 'Max qty', render: (u) => (u.maxQuantity == null ? '∞' : String(u.maxQuantity)) },
     { header: 'Active', render: (u) => <StatusBadge status={u.active ? 'active' : 'inactive'} /> },
     {
       header: '', align: 'right',
@@ -118,8 +152,23 @@ export default function UnitTypesPage() {
               type="checkbox"
               checked={form.countsTowardSpoonLimit}
               onChange={(e) => setForm({ ...form, countsTowardSpoonLimit: e.target.checked })}
-            /> Counts toward spoon limit
+            /> Counts toward the three-spoon takeaway cap (swallows)
           </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.triggersTakeawayFee}
+              onChange={(e) => setForm({ ...form, triggersTakeawayFee: e.target.checked })}
+            /> Pulls the takeaway/service fee
+          </label>
+          <TextField
+            label="Max quantity per line"
+            type="number"
+            min={1}
+            value={form.maxQuantity}
+            onChange={(e) => setForm({ ...form, maxQuantity: e.target.value })}
+            hint="Leave blank for unlimited. Use 1 for single-portion items like pepper soup."
+          />
         </div>
       </Modal>
     </>

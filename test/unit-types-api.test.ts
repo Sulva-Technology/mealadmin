@@ -44,6 +44,35 @@ describe('unit types api client', () => {
     );
   });
 
+  it('sends the takeaway-fee and max-quantity flags for single-portion unit types', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(jsonResponse({ data: { id: 'unit-2' } }));
+
+    await api.createUnitType({
+      code: 'single_takeaway',
+      displayName: 'Single portion + takeaway',
+      countsTowardSpoonLimit: false,
+      triggersTakeawayFee: true,
+      maxQuantity: 1,
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/proxy/admin/unit-types',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          code: 'single_takeaway',
+          displayName: 'Single portion + takeaway',
+          countsTowardSpoonLimit: false,
+          triggersTakeawayFee: true,
+          maxQuantity: 1,
+        }),
+      }),
+    );
+  });
+
   it('patches only the active flag when toggling', async () => {
     const fetchMock = vi
       .spyOn(globalThis, 'fetch')
