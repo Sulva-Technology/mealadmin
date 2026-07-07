@@ -173,6 +173,30 @@ the recipient sign up and attaches them to the vendor with the **invited
 `POST /v1/admin/vendors/:id/users` body `{ userId: string; role }` still exists
 for linking an already-existing user by id, but is no longer surfaced in the UI.
 
+## Vendor Menu Endpoints (wired)
+
+Admins add and edit any vendor's menu from the vendor detail page. Backend
+implemented in `mealdirectbackend` (`AdminVendorMenuController`, gated on
+`campus_admin`/`super_admin`), reusing the vendor menu repository so admin edits
+and vendor self-service edits share one source of truth.
+
+`GET /v1/admin/vendors/:vendorId/menu-metadata` — categories + active unit types
+used to populate the item editor.
+
+`GET /v1/admin/vendors/:vendorId/menu-items` — all items incl. inactive. Item
+fields: `id`, `vendorId`, `categoryId`, `categoryName`, `unitTypeId`, `unitCode`,
+`name`, `description`, `imageUrl`, `priceKobo`, `countsTowardSpoonLimit`,
+`requiresSoup`, `active`, `displayOrder`, `createdAt`, `updatedAt`.
+
+Mutation endpoints:
+
+- `POST /v1/admin/vendors/:vendorId/menu-categories` body `{ name, displayOrder? }`
+- `POST /v1/admin/vendors/:vendorId/menu-items` body
+  `{ categoryId?, unitTypeId, name, description?, priceKobo, requiresSoup?, displayOrder? }`
+- `PATCH /v1/admin/vendors/:vendorId/menu-items/:itemId` (same fields, all optional)
+- `POST /v1/admin/vendors/:vendorId/menu-items/:itemId/activate`
+- `POST /v1/admin/vendors/:vendorId/menu-items/:itemId/deactivate`
+
 ## Still Deferred
 
 - `GET/POST /v1/admin/promotions*` - out of scope.

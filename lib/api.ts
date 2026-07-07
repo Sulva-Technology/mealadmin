@@ -8,6 +8,7 @@ import type {
   AdminMembership, AnalyticsData, AuditLog,
   VendorInvitation, VendorInvitationCreated,
   Zone, CampusLocation, DeliverySlot, LocationType, UnitType,
+  MenuItem, MenuCategory, MenuMetadata, CreateMenuItemInput, UpdateMenuItemInput,
   ListEnvelope, ItemEnvelope, BeneficiaryType,
   NotificationRecord, NotificationPreferences,
   UpdateNotificationPreferences, RegisterDeviceTokenPayload,
@@ -234,6 +235,22 @@ export const api = {
     request<ListEnvelope<VendorInvitation>>(`/admin/vendors/${id}/invitations${qs(q)}`),
   createVendorInvitation: (id: string, body: { email: string; role: 'owner' | 'staff'; expiresInHours?: number }) =>
     post(`/admin/vendors/${id}/invitations`, body) as Promise<ItemEnvelope<VendorInvitationCreated>>,
+
+  // Vendor menu (admin-managed, per vendor)
+  getVendorMenuMetadata: (id: string) =>
+    request<ItemEnvelope<MenuMetadata>>(`/admin/vendors/${id}/menu-metadata`),
+  getVendorMenuItems: (id: string) =>
+    request<ListEnvelope<MenuItem>>(`/admin/vendors/${id}/menu-items`),
+  createVendorMenuCategory: (id: string, body: { name: string; displayOrder?: number }) =>
+    post(`/admin/vendors/${id}/menu-categories`, body) as Promise<ItemEnvelope<MenuCategory>>,
+  createVendorMenuItem: (id: string, body: CreateMenuItemInput) =>
+    post(`/admin/vendors/${id}/menu-items`, body) as Promise<ItemEnvelope<MenuItem>>,
+  updateVendorMenuItem: (id: string, itemId: string, body: UpdateMenuItemInput) =>
+    patch(`/admin/vendors/${id}/menu-items/${itemId}`, body) as Promise<ItemEnvelope<MenuItem>>,
+  activateVendorMenuItem: (id: string, itemId: string) =>
+    post(`/admin/vendors/${id}/menu-items/${itemId}/activate`) as Promise<ItemEnvelope<MenuItem>>,
+  deactivateVendorMenuItem: (id: string, itemId: string) =>
+    post(`/admin/vendors/${id}/menu-items/${itemId}/deactivate`) as Promise<ItemEnvelope<MenuItem>>,
 
   // Riders
   getRiders: (q?: Query) => request<ListEnvelope<RiderListItem>>(`/admin/riders${qs(q)}`),

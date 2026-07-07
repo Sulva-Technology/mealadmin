@@ -499,6 +499,52 @@ export interface VendorPerformance {
   reviewCount?: number;
   averageVendorRating?: number | null;
 }
+
+// ---- Vendor menu -----------------------------------------------------------
+
+export interface MenuCategory {
+  id: string;
+  vendorId: string;
+  name: string;
+  slug: string;
+  active: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface MenuItem {
+  id: string;
+  vendorId: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  unitTypeId: string;
+  unitCode: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  priceKobo: number;
+  countsTowardSpoonLimit: boolean;
+  requiresSoup: boolean;
+  active: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+/** Categories + active unit types, used to populate the menu-item editor. */
+export interface MenuMetadata {
+  categories: MenuCategory[];
+  unitTypes: UnitType[];
+}
+export interface CreateMenuItemInput {
+  categoryId?: string | null;
+  unitTypeId: string;
+  name: string;
+  description?: string | null;
+  priceKobo: number;
+  requiresSoup?: boolean;
+  displayOrder?: number;
+}
+export type UpdateMenuItemInput = Partial<CreateMenuItemInput>;
 // ---- Riders ----------------------------------------------------------------
 
 export interface RiderListItem {

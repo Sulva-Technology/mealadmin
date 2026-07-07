@@ -7,14 +7,26 @@ import { api } from '@/lib/api';
 import { useApiQuery, useApiAction } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { useToast } from '@/components/ui/Toast';
-import { formatKobo, formatDateTime } from '@/lib/format';
+import { formatKobo, formatDateTime, koboToNaira, nairaToKobo } from '@/lib/format';
 import { PageHeader, Card, Field, Stat, AsyncBoundary } from '@/components/ui/Page';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { TextField, TextArea, Select } from '@/components/ui/Inputs';
 import { DataTable } from '@/components/ui/DataTable';
-import type { VendorInvitation, VendorInvitationCreated, VendorUserRole } from '@/lib/types';
+import type { MenuItem, VendorInvitation, VendorInvitationCreated, VendorUserRole } from '@/lib/types';
+
+type MenuForm = {
+  name: string;
+  priceKobo: number;
+  unitTypeId: string;
+  categoryId: string; // '' = none
+  description: string;
+  requiresSoup: boolean;
+};
+const emptyMenuForm: MenuForm = {
+  name: '', priceKobo: 0, unitTypeId: '', categoryId: '', description: '', requiresSoup: false,
+};
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -47,6 +59,8 @@ export default function VendorDetailPage() {
   const query = useApiQuery(['vendor', vendorId], () => api.getVendor(vendorId));
   const perfQ = useApiQuery(['vendor', vendorId, 'performance'], () => api.getVendorPerformance(vendorId));
   const invitationsQ = useApiQuery(['vendor', vendorId, 'invitations'], () => api.getVendorInvitations(vendorId));
+  const menuItemsQ = useApiQuery(['vendor', vendorId, 'menu-items'], () => api.getVendorMenuItems(vendorId));
+  const menuMetaQ = useApiQuery(['vendor', vendorId, 'menu-metadata'], () => api.getVendorMenuMetadata(vendorId));
   const vendor = query.data?.data;
 
   const [editOpen, setEditOpen] = useState(false);
@@ -59,6 +73,47 @@ export default function VendorDetailPage() {
   const [inviteResult, setInviteResult] = useState<VendorInvitationCreated | null>(null);
   const [copied, setCopied] = useState(false);
   const inviteCountdown = useCountdown(inviteResult?.expiresAt);
+
+  // Menu management
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuEditing, setMenuEditing] = useState<MenuItem | null>(null);
+  const [menuForm, setMenuForm] = useState<MenuForm>(emptyMenuForm);
+  const menuInvalidate = [['vendor', vendorId, 'menu-items'], ['vendor', vendorId, 'menu-metadata']];
+  const unitTypes = menuMetaQ.data?.data.unitTypes ?? [];
+  const categories = menuMetaQ.data?.data.categories ?? [];
+
+  const openMenuCreate = () => { setMenuEditing(null); setMenuForm(emptyMenuForm); setMenuOpen(true); };
+  const openMenuEdit = (item: MenuItem) => {
+    setMenuEditing(item);
+    setMenuForm({
+      name: item.name, priceKobo: item.priceKobo, unitTypeId: item.unitTypeId,
+      categoryId: item.categoryId ?? '', description: item.description ?? '', requiresSoup: item.requiresSoup,
+    });
+    setMenuOpen(true);
+  };
+  const menuFormValid = menuForm.name.trim().length > 0 && menuForm.unitTypeId !== '' && menuForm.priceKobo >= 0;
+  const saveMenu = useApiAction(
+    () => {
+      const body = {
+        name: menuForm.name.trim(),
+        priceKobo: menuForm.priceKobo,
+        unitTypeId: menuForm.unitTypeId,
+        categoryId: menuForm.categoryId === '' ? null : menuForm.categoryId,
+        description: menuForm.description.trim() === '' ? null : menuForm.description.trim(),
+        requiresSoup: menuForm.requiresSoup,
+      };
+      return menuEditing
+        ? api.updateVendorMenuItem(vendorId, menuEditing.id, body)
+        : api.createVendorMenuItem(vendorId, body);
+    },
+    { invalidate: menuInvalidate, success: 'Menu item saved.', onSuccess: () => setMenuOpen(false) },
+  );
+  const toggleMenuActive = useApiAction(
+    (item: MenuItem) => (item.active
+      ? api.deactivateVendorMenuItem(vendorId, item.id)
+      : api.activateVendorMenuItem(vendorId, item.id)),
+    { invalidate: menuInvalidate, success: 'Menu item updated.' },
+  );
 
   const invalidate = [['vendor', vendorId], ['vendors']];
   const save = useApiAction(() => api.updateVendor(vendorId, form), {
@@ -176,6 +231,48 @@ export default function VendorDetailPage() {
                   <p className="text-sm text-muted">No invitations sent yet.</p>
                 )}
               </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-muted uppercase tracking-wider">Menu</h3>
+                  <Button size="sm" onClick={openMenuCreate} disabled={menuMetaQ.isLoading}>Add Item</Button>
+                </div>
+                {menuItemsQ.data?.data.length ? (
+                  <DataTable<MenuItem>
+                    rowKey={(r) => r.id}
+                    columns={[
+                      { header: 'Name', render: (r) => (
+                        <div>
+                          <div className="font-medium text-ink dark:text-white">{r.name}</div>
+                          {r.description && <div className="text-xs text-muted line-clamp-1">{r.description}</div>}
+                        </div>
+                      ) },
+                      { header: 'Category', render: (r) => r.categoryName ?? '—' },
+                      { header: 'Unit', render: (r) => r.unitCode },
+                      { header: 'Price', render: (r) => formatKobo(r.priceKobo) },
+                      { header: 'Soup', render: (r) => (r.requiresSoup ? 'Required' : '—') },
+                      { header: 'Status', render: (r) => (
+                        <StatusBadge status={r.active ? 'active' : 'inactive'} tone={r.active ? 'success' : 'warning'} />
+                      ) },
+                      { header: '', render: (r) => (
+                        <div className="flex items-center gap-2 justify-end">
+                          <Button size="sm" variant="outline" onClick={() => openMenuEdit(r)}>Edit</Button>
+                          <Button
+                            size="sm" variant={r.active ? 'subtle' : 'primary'}
+                            loading={toggleMenuActive.isPending}
+                            onClick={() => toggleMenuActive.mutate(r)}
+                          >
+                            {r.active ? 'Deactivate' : 'Activate'}
+                          </Button>
+                        </div>
+                      ) },
+                    ]}
+                    rows={menuItemsQ.data.data}
+                  />
+                ) : (
+                  <p className="text-sm text-muted">No menu items yet. Add the vendor&apos;s first item.</p>
+                )}
+              </Card>
             </div>
           );
         }}
@@ -195,6 +292,52 @@ export default function VendorDetailPage() {
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
             Active
+          </label>
+        </div>
+      </Modal>
+
+      <Modal
+        open={menuOpen} onClose={() => setMenuOpen(false)}
+        title={menuEditing ? 'Edit Menu Item' : 'Add Menu Item'}
+        footer={<>
+          <Button variant="ghost" onClick={() => setMenuOpen(false)}>Cancel</Button>
+          <Button loading={saveMenu.isPending} disabled={!menuFormValid} onClick={() => saveMenu.mutate()}>Save</Button>
+        </>}
+      >
+        <div className="space-y-4">
+          <TextField
+            label="Name" maxLength={180} value={menuForm.name}
+            onChange={(e) => setMenuForm({ ...menuForm, name: e.target.value })}
+          />
+          <TextField
+            label="Price (₦)" type="number" min={0} step="1"
+            value={koboToNaira(menuForm.priceKobo)}
+            onChange={(e) => setMenuForm({ ...menuForm, priceKobo: nairaToKobo(e.target.value) })}
+          />
+          <Select
+            label="Unit type" value={menuForm.unitTypeId}
+            onChange={(e) => setMenuForm({ ...menuForm, unitTypeId: e.target.value })}
+          >
+            <option value="" disabled>Select a unit type…</option>
+            {unitTypes.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+          </Select>
+          <Select
+            label="Category" value={menuForm.categoryId}
+            onChange={(e) => setMenuForm({ ...menuForm, categoryId: e.target.value })}
+          >
+            <option value="">No category</option>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </Select>
+          <TextArea
+            label="Description" maxLength={1000} value={menuForm.description}
+            onChange={(e) => setMenuForm({ ...menuForm, description: e.target.value })}
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox" checked={menuForm.requiresSoup}
+              onChange={(e) => setMenuForm({ ...menuForm, requiresSoup: e.target.checked })}
+            />
+            Requires soup selection
           </label>
         </div>
       </Modal>
