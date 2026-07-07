@@ -72,6 +72,28 @@ export default function OrderDetailPage() {
                   <Field label="Created">{formatDateTime(o.createdAt)}</Field>
                   <Field label="Updated">{formatDateTime(o.updatedAt)}</Field>
                 </dl>
+
+                <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mt-6 mb-3">Items</h3>
+                {o.items && o.items.length > 0 ? (
+                  <ul className="divide-y divide-line">
+                    {o.items.map((it) => (
+                      <li key={it.id} className="flex items-start justify-between gap-4 py-3">
+                        <div>
+                          <div className="font-medium text-ink dark:text-white">
+                            {it.quantity} × {it.itemName}
+                            {it.unitType ? <span className="text-muted font-normal"> · {titleize(it.unitType)}</span> : null}
+                          </div>
+                          {it.soupName && <div className="text-xs text-muted">Soup: {it.soupName}</div>}
+                          {it.customization && <div className="text-xs text-muted">{it.customization}</div>}
+                          <div className="text-xs text-muted">{formatKobo(it.unitPriceKobo)} each</div>
+                        </div>
+                        <div className="font-bold text-ink dark:text-white whitespace-nowrap">{formatKobo(it.lineTotalKobo)}</div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted">No items returned for this order.</p>
+                )}
               </Card>
 
               <Card className="p-6 h-fit">

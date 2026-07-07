@@ -247,13 +247,27 @@ export interface OrderListItem {
   deliveryMode: string;
   totalKobo: number;
   currency: string;
+  itemsSummary?: string;
   createdAt: string;
   updatedAt: string;
+}
+export interface OrderItem {
+  id: string;
+  menuItemId: string | null;
+  itemName: string;
+  unitType: string | null;
+  unitPriceKobo: number;
+  quantity: number;
+  lineTotalKobo: number;
+  customization: string | null;
+  soupOptionId: string | null;
+  soupName: string | null;
 }
 export interface Order extends Omit<OrderListItem, 'deliverySlotId' | 'locationId'> {
   customerEmail: string | null;
   customerPhone?: string | null;
   paymentReference?: string | null;
+  items?: OrderItem[];
 }
 
 // ---- Payments / refunds / reconciliation / diagnostics --------------------
