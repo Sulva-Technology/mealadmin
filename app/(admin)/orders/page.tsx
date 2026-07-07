@@ -26,7 +26,7 @@ function buildColumns(ref: DispatchRef): Column<OrderListItem>[] {
             <div className="text-xs text-muted">
               {formatDate(o.serviceDate)}{time ? ` · ${time}` : ''}
             </div>
-            {o.itemsSummary && <div className="text-xs text-muted truncate max-w-[22rem]">{o.itemsSummary}</div>}
+            {typeof o.itemsSummary === 'string' && o.itemsSummary && <div className="text-xs text-muted truncate max-w-[22rem]">{o.itemsSummary}</div>}
             {location && <div className="text-[11px] text-muted font-mono">{o.orderNumber}</div>}
           </div>
         );

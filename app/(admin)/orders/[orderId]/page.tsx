@@ -15,6 +15,18 @@ import { Select, TextArea } from '@/components/ui/Inputs';
 import { PermissionAction } from '@/components/admin/Permission';
 import { CopyButton } from '@/components/admin/finance/FinanceUI';
 
+function asText(v: unknown): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  try {
+    const s = JSON.stringify(v);
+    return s === '{}' || s === '[]' ? '' : s;
+  } catch {
+    return '';
+  }
+}
+
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const { campusName } = useSession();
@@ -80,11 +92,11 @@ export default function OrderDetailPage() {
                       <li key={it.id} className="flex items-start justify-between gap-4 py-3">
                         <div>
                           <div className="font-medium text-ink dark:text-white">
-                            {it.quantity} × {it.itemName}
-                            {it.unitType ? <span className="text-muted font-normal"> · {titleize(it.unitType)}</span> : null}
+                            {it.quantity} × {asText(it.itemName)}
+                            {it.unitType ? <span className="text-muted font-normal"> · {titleize(asText(it.unitType))}</span> : null}
                           </div>
-                          {it.soupName && <div className="text-xs text-muted">Soup: {it.soupName}</div>}
-                          {it.customization && <div className="text-xs text-muted">{it.customization}</div>}
+                          {it.soupName && <div className="text-xs text-muted">Soup: {asText(it.soupName)}</div>}
+                          {it.customization && <div className="text-xs text-muted">{asText(it.customization)}</div>}
                           <div className="text-xs text-muted">{formatKobo(it.unitPriceKobo)} each</div>
                         </div>
                         <div className="font-bold text-ink dark:text-white whitespace-nowrap">{formatKobo(it.lineTotalKobo)}</div>
