@@ -7,11 +7,12 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, Boxes, Package, Store, Bike, Users,
   Banknote, Star, AlertTriangle, BarChart3, ScrollText, ShieldCheck, Settings,
-  MapPin, Bell, Ruler, CreditCard, Undo2, Activity, ListChecks,
+  MapPin, Bell, Ruler, CreditCard, Undo2, Activity, ListChecks, LogOut,
   type LucideIcon,
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
 import { visibleNavGroups } from '@/lib/rbac';
+import { logout } from '@/lib/logout';
 
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard, ShoppingCart, Boxes, Package, Store, Bike, Users,
@@ -76,6 +77,23 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
           );
         })}
       </nav>
+
+      <div className="p-4 border-t border-white/60 dark:border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-success flex items-center justify-center text-white shadow-sm shrink-0">
+            {(session?.email ?? 'A').charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-ink dark:text-white truncate">{session?.email ?? 'Admin'}</p>
+            <button
+              onClick={logout}
+              className="text-xs text-muted hover:text-danger transition-colors inline-flex items-center gap-1"
+            >
+              <LogOut className="w-3 h-3" /> Sign out
+            </button>
+          </div>
+        </div>
+      </div>
     </aside>
     </>
   );
