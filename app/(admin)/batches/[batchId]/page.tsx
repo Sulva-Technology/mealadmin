@@ -18,6 +18,10 @@ export default function BatchDetailPage() {
   const query = useApiQuery(['batch', batchId], () => api.getBatch(batchId));
   const batch = query.data?.data;
 
+  // Read-only chat oversight (newest-first from API → flip to chronological).
+  const chatQ = useApiQuery(['batch-chat', batchId], () => api.getBatchChat(batchId, { limit: 100 }));
+  const chatMessages = [...(chatQ.data?.data ?? [])].reverse();
+
   // Verified riders for the batch's campus, for the assignment selector.
   const ridersQ = useApiQuery(
     ['riders', 'verified', batch?.campusId],
@@ -126,6 +130,37 @@ export default function BatchDetailPage() {
           );
         }}
       </AsyncBoundary>
+
+      <Card className="p-6 mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-muted uppercase tracking-wider">Batch Chat (oversight)</h3>
+          <button
+            onClick={() => chatQ.refetch()}
+            className="text-xs text-muted hover:text-ink dark:hover:text-white"
+          >
+            Refresh
+          </button>
+        </div>
+        {chatMessages.length === 0 ? (
+          <p className="text-sm text-muted">No messages in this batch chat.</p>
+        ) : (
+          <div className="space-y-3 max-h-[28rem] overflow-y-auto">
+            {chatMessages.map((m) => (
+              <div key={m.id} className="flex flex-col">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs font-semibold text-ink dark:text-white">{m.senderLabel}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted">{m.senderRole}</span>
+                  <span className="text-[10px] text-muted ml-auto font-mono">{formatDateTime(m.createdAt)}</span>
+                </div>
+                <p className="text-sm text-ink/90 dark:text-white/90 whitespace-pre-wrap break-words">{m.body}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-[10px] text-muted mt-4">
+          Read-only. Customers appear pseudonymously (Customer N) exactly as participants see them.
+        </p>
+      </Card>
 
       <Modal
         open={assignOpen} onClose={() => setAssignOpen(false)}

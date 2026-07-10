@@ -495,6 +495,17 @@ export interface BatchOrder {
   sequence: number | null;
 }
 
+export interface ChatMessage {
+  id: string;
+  batchId: string;
+  senderUserId: string;
+  senderLabel: string;
+  senderRole: 'rider' | 'customer' | 'vendor';
+  body: string;
+  createdAt: string;
+  mine: boolean;
+}
+
 export interface Batch
   extends Omit<BatchListItem, 'deliverySlotId' | 'zoneId'> {
   assignmentId: string | null;

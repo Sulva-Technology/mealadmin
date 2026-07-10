@@ -15,6 +15,7 @@ import type {
   MarkAllNotificationsReadResult,
   PaymentListItem, PaymentDetail, PaymentQueueItem,
   RefundListItem, RefundDetail, SystemHealth, WebhookEvent, WebhookDetail,
+  ChatMessage,
 } from '@/lib/types';
 
 /** Real backend base URL. Used server-side (login + proxy route handlers). */
@@ -208,6 +209,8 @@ export const api = {
   // Batches
   getBatches: (q?: Query) => request<ListEnvelope<BatchListItem>>(`/admin/batches${qs(q)}`),
   getBatch: (id: string) => request<ItemEnvelope<Batch>>(`/admin/batches/${id}`),
+  getBatchChat: (id: string, q?: Query) =>
+    request<ListEnvelope<ChatMessage>>(`/admin/batches/${id}/chat/messages${qs(q)}`),
   closeBatch: (id: string) => post(`/admin/batches/${id}/close`),
   assignRider: (id: string, riderId: string) =>
     post(`/admin/batches/${id}/assign-rider`, { riderId }),
