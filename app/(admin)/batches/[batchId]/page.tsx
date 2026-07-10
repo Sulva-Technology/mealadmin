@@ -78,6 +78,38 @@ export default function BatchDetailPage() {
                   <Field label="Created">{formatDateTime(b.createdAt)}</Field>
                   <Field label="Updated">{formatDateTime(b.updatedAt)}</Field>
                 </dl>
+
+                <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mt-6 mb-3">Orders</h3>
+                {b.orders && b.orders.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs text-muted uppercase tracking-wider">
+                          <th className="py-2 pr-4 font-semibold">Order</th>
+                          <th className="py-2 pr-4 font-semibold">Location</th>
+                          <th className="py-2 pr-4 font-semibold">Room</th>
+                          <th className="py-2 pr-4 font-semibold">Status</th>
+                          <th className="py-2 pr-0 font-semibold text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {b.orders.map((o) => (
+                          <tr key={o.id} className="border-t border-muted/20">
+                            <td className="py-2 pr-4 font-mono text-xs">
+                              <a href={`/orders/${o.id}`} className="hover:underline">{o.orderNumber}</a>
+                            </td>
+                            <td className="py-2 pr-4">{o.locationName}</td>
+                            <td className="py-2 pr-4 font-semibold text-ink dark:text-white">{o.roomNumber ?? '—'}</td>
+                            <td className="py-2 pr-4"><StatusBadge status={o.orderStatus} /></td>
+                            <td className="py-2 pr-0 text-right">{formatKobo(o.totalKobo)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted">No orders in this batch.</p>
+                )}
               </Card>
 
               <Card className="p-6 h-fit">

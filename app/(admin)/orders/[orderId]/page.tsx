@@ -79,6 +79,7 @@ export default function OrderDetailPage() {
                   <Field label="Campus">{campusName(o.campusId)}</Field>
                   <Field label="Payment reference">{o.paymentReference ?? 'Not returned'}</Field>
                   <Field label="Delivery Mode">{titleize(o.deliveryMode)}</Field>
+                  <Field label="Room number">{o.roomNumber ?? 'None'}</Field>
                   <Field label="Service Date">{formatDate(o.serviceDate)}</Field>
                   <Field label="Total">{formatKobo(o.totalKobo)}</Field>
                   <Field label="Created">{formatDateTime(o.createdAt)}</Field>

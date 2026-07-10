@@ -243,6 +243,7 @@ export interface OrderListItem {
   serviceDate: string;
   deliverySlotId: string | null;
   locationId: string | null;
+  roomNumber?: string | null;
   orderStatus: OrderStatus;
   deliveryMode: string;
   totalKobo: number;
@@ -482,11 +483,24 @@ export interface BatchListItem {
   createdAt: string;
   updatedAt: string;
 }
+export interface BatchOrder {
+  id: string;
+  orderNumber: string;
+  customerId: string;
+  locationName: string;
+  roomNumber: string | null;
+  orderStatus: string;
+  deliveryMode: string;
+  totalKobo: number;
+  sequence: number | null;
+}
+
 export interface Batch
   extends Omit<BatchListItem, 'deliverySlotId' | 'zoneId'> {
   assignmentId: string | null;
   riderId: string | null;
   assignmentStatus: string | null;
+  orders?: BatchOrder[];
 }
 
 // ---- Vendors ---------------------------------------------------------------
