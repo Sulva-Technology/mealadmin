@@ -500,7 +500,7 @@ export interface ChatMessage {
   batchId: string;
   senderUserId: string;
   senderLabel: string;
-  senderRole: 'rider' | 'customer' | 'vendor';
+  senderRole: 'rider' | 'customer' | 'vendor' | 'admin';
   body: string;
   createdAt: string;
   mine: boolean;

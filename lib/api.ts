@@ -211,6 +211,8 @@ export const api = {
   getBatch: (id: string) => request<ItemEnvelope<Batch>>(`/admin/batches/${id}`),
   getBatchChat: (id: string, q?: Query) =>
     request<ListEnvelope<ChatMessage>>(`/admin/batches/${id}/chat/messages${qs(q)}`),
+  sendBatchChat: (id: string, body: string) =>
+    post(`/admin/batches/${id}/chat/messages`, { body }) as Promise<ItemEnvelope<ChatMessage>>,
   closeBatch: (id: string) => post(`/admin/batches/${id}/close`),
   assignRider: (id: string, riderId: string) =>
     post(`/admin/batches/${id}/assign-rider`, { riderId }),

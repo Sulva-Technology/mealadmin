@@ -36,6 +36,7 @@ export default function BatchDetailPage() {
   const [closeOpen, setCloseOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [vendorOpen, setVendorOpen] = useState(false);
+  const [chatDraft, setChatDraft] = useState('');
 
   const invalidate = [['batch', batchId], ['batches']];
   const doAssign = useApiAction(
@@ -50,6 +51,11 @@ export default function BatchDetailPage() {
   });
   const doCancelAssign = useApiAction(() => api.cancelBatchAssignment(batchId), {
     invalidate, success: 'Assignment cancelled.', onSuccess: () => setCancelOpen(false),
+  });
+  const doSendChat = useApiAction(() => api.sendBatchChat(batchId, chatDraft.trim()), {
+    invalidate: [['batch-chat', batchId]],
+    success: 'Message sent to the batch.',
+    onSuccess: () => setChatDraft(''),
   });
 
   const openAssign = (re: boolean) => { setReassign(re); setRiderId(''); setAssignOpen(true); };
@@ -157,8 +163,24 @@ export default function BatchDetailPage() {
             ))}
           </div>
         )}
-        <p className="text-[10px] text-muted mt-4">
-          Read-only. Customers appear pseudonymously (Customer N) exactly as participants see them.
+        <div className="mt-4 flex items-end gap-2 border-t border-muted/20 pt-4">
+          <textarea
+            value={chatDraft}
+            onChange={(e) => setChatDraft(e.target.value.slice(0, 2000))}
+            rows={2}
+            placeholder="Message the batch as Support…"
+            className="flex-1 resize-none rounded-lg border border-muted/30 bg-transparent px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+          <Button
+            loading={doSendChat.isPending}
+            disabled={chatDraft.trim().length === 0}
+            onClick={() => doSendChat.mutate()}
+          >
+            Send
+          </Button>
+        </div>
+        <p className="text-[10px] text-muted mt-3">
+          You post as “Support” — everyone on the batch is notified. Customers appear pseudonymously (Customer N).
         </p>
       </Card>
 
