@@ -69,6 +69,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: 'Payments', href: '/payments', icon: 'CreditCard', roles: ['super_admin', 'finance_admin', 'support_admin', 'operations_admin', 'read_only_admin'] },
       { name: 'Refunds', href: '/refunds', icon: 'Undo2', roles: ['super_admin', 'finance_admin', 'support_admin', 'read_only_admin'] },
+      { name: 'Money', href: '/finance', icon: 'Wallet', roles: FINANCE_ROLES },
       { name: 'Settlements', href: '/settlements', icon: 'Banknote', roles: FINANCE_ROLES },
       { name: 'Escalations', href: '/escalations', icon: 'AlertTriangle', roles: SUPPORT_ROLES },
       { name: 'Reviews', href: '/reviews', icon: 'Star', roles: SUPPORT_ROLES },

@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ShoppingCart, Boxes, Package, Store, Bike, Users,
   Banknote, Star, AlertTriangle, BarChart3, ScrollText, ShieldCheck, Settings,
-  MapPin, Bell, Ruler, CreditCard, Undo2, Activity, ListChecks, LogOut,
+  MapPin, Bell, Ruler, CreditCard, Undo2, Activity, ListChecks, LogOut, Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
@@ -17,7 +17,7 @@ import { logout } from '@/lib/logout';
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard, ShoppingCart, Boxes, Package, Store, Bike, Users,
   Banknote, Star, AlertTriangle, BarChart3, ScrollText, ShieldCheck, Settings,
-  MapPin, Bell, Ruler, CreditCard, Undo2, Activity, ListChecks,
+  MapPin, Bell, Ruler, CreditCard, Undo2, Activity, ListChecks, Wallet,
 };
 
 export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => void }) {
