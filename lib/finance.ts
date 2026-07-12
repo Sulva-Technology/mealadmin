@@ -116,15 +116,16 @@ export function computePools(
 }
 
 /**
- * Fetch every settlement matching the filters by walking the cursor. List pages
- * cap at 100 (lib/api.ts), so a wide range needs several requests; capped at
- * MAX_PAGES to bound the work. Callers still filter by date client-side in case
- * the backend does not honour dateFrom/dateTo.
+ * Fetch every settlement for a beneficiary type by walking the cursor. The
+ * settlements endpoint does NOT accept dateFrom/dateTo (it rejects unknown
+ * props), so we cannot filter by range server-side — callers filter by
+ * settlementDate client-side with `inRange`. List pages cap at 100
+ * (lib/api.ts), capped at MAX_PAGES to bound the work.
  */
 const MAX_PAGES = 50;
 
-export async function fetchSettlementsInRange(
-  params: { campusId?: string; beneficiaryType: BeneficiaryType } & DateRange,
+export async function fetchAllSettlements(
+  params: { campusId?: string; beneficiaryType: BeneficiaryType },
 ): Promise<SettlementListItem[]> {
   const out: SettlementListItem[] = [];
   let cursor: string | undefined;

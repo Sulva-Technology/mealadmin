@@ -10,7 +10,7 @@ import {
   computePools,
   periodRange,
   inRange,
-  fetchSettlementsInRange,
+  fetchAllSettlements,
   type FinancePeriod,
   type PoolBreakdown,
 } from '@/lib/finance';
@@ -33,8 +33,8 @@ export default function FinancePage() {
     ['finance-pools', campusId ?? 'all', period],
     async () => {
       const [vendor, rider, analytics] = await Promise.all([
-        fetchSettlementsInRange({ campusId, beneficiaryType: 'vendor', ...range }),
-        fetchSettlementsInRange({ campusId, beneficiaryType: 'rider', ...range }),
+        fetchAllSettlements({ campusId, beneficiaryType: 'vendor' }),
+        fetchAllSettlements({ campusId, beneficiaryType: 'rider' }),
         api.getAnalytics({ campusId, dateFrom: range.dateFrom, dateTo: range.dateTo }),
       ]);
       // Client-side date guard in case the backend ignores the range params.
