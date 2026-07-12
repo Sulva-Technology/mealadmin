@@ -11,10 +11,17 @@ import {
   periodRange,
   inRange,
   fetchAllSettlements,
+  fetchAllPayments,
+  fetchAllRefunds,
+  sumPaidCollected,
+  sumProcessedRefunds,
+  groupByBeneficiary,
   type FinancePeriod,
   type PoolBreakdown,
+  type BeneficiaryEarning,
 } from '@/lib/finance';
 import { PageHeader, AsyncBoundary } from '@/components/ui/Page';
+import { Modal } from '@/components/ui/Modal';
 
 const PERIODS: { key: FinancePeriod; label: string }[] = [
   { key: 'today', label: 'Today' },
@@ -26,24 +33,43 @@ const PERIODS: { key: FinancePeriod; label: string }[] = [
 export default function FinancePage() {
   const { scopeCampusId } = useSession();
   const [period, setPeriod] = useState<FinancePeriod>('month');
+  const [modal, setModal] = useState<null | 'vendor' | 'rider'>(null);
   const range = periodRange(period);
   const campusId = scopeCampusId ?? undefined;
+  const periodLabel = PERIODS.find((p) => p.key === period)!.label;
 
   const query = useApiQuery(
     ['finance-pools', campusId ?? 'all', period],
     async () => {
-      const [vendor, rider, analytics] = await Promise.all([
+      const [vendor, rider, payments, refunds, vendors, riders] = await Promise.all([
         fetchAllSettlements({ campusId, beneficiaryType: 'vendor' }),
         fetchAllSettlements({ campusId, beneficiaryType: 'rider' }),
-        api.getAnalytics({ campusId, dateFrom: range.dateFrom, dateTo: range.dateTo }),
+        // Payments are filtered by date server-side; status is filtered client-side
+        // by sumPaidCollected so partially_refunded payments still count as collected.
+        fetchAllPayments({ campusId, from: range.dateFrom, to: range.dateTo }),
+        fetchAllRefunds({ campusId, status: 'processed' }),
+        api.getVendors({ campusId, limit: 100 }),
+        api.getRiders({ campusId, limit: 100 }),
       ]);
-      // Client-side date guard in case the backend ignores the range params.
-      const collected = analytics.data?.grossSalesKobo;
-      return computePools(
-        vendor.filter((s) => inRange(s.settlementDate, range)),
-        rider.filter((s) => inRange(s.settlementDate, range)),
-        typeof collected === 'number' ? collected : null,
-      );
+      // Settlement endpoints ignore the range params, so guard client-side.
+      const vendorInRange = vendor.filter((s) => inRange(s.settlementDate, range));
+      const riderInRange = rider.filter((s) => inRange(s.settlementDate, range));
+
+      // Real money only: expired/pending/failed orders never reach a paid payment.
+      const collected = sumPaidCollected(payments);
+      const refundsOut = sumProcessedRefunds(refunds, range);
+      const pools = computePools(vendorInRange, riderInRange, collected, refundsOut);
+
+      const names = new Map<string, string>();
+      for (const v of vendors.data) names.set(v.id, v.displayName);
+      for (const r of riders.data) names.set(r.id, r.displayName);
+
+      return {
+        pools,
+        vendorEarnings: groupByBeneficiary(vendorInRange, 'vendor'),
+        riderEarnings: groupByBeneficiary(riderInRange, 'rider'),
+        names,
+      };
     },
   );
 
@@ -72,29 +98,79 @@ export default function FinancePage() {
       />
 
       <AsyncBoundary query={query}>
-        {(pools) => (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <PoolCard
-              icon={<Store className="w-5 h-5" />}
-              tone="vendor"
-              title="Vendor money"
-              amount={formatKobo(pools.vendor.totalKobo)}
-              breakdown={pools.vendor}
-            />
+        {({ pools, vendorEarnings, riderEarnings, names }) => (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <PoolCard
+                icon={<Store className="w-5 h-5" />}
+                tone="vendor"
+                title="Vendor money"
+                amount={formatKobo(pools.vendor.totalKobo)}
+                breakdown={pools.vendor}
+                onClick={pools.vendor.count > 0 ? () => setModal('vendor') : undefined}
+              />
 
-            <PlatformCard platform={pools.platform} />
+              <PlatformCard platform={pools.platform} />
 
-            <PoolCard
-              icon={<Bike className="w-5 h-5" />}
-              tone="rider"
-              title="Rider money"
-              amount={formatKobo(pools.rider.totalKobo)}
-              breakdown={pools.rider}
+              <PoolCard
+                icon={<Bike className="w-5 h-5" />}
+                tone="rider"
+                title="Rider money"
+                amount={formatKobo(pools.rider.totalKobo)}
+                breakdown={pools.rider}
+                onClick={pools.rider.count > 0 ? () => setModal('rider') : undefined}
+              />
+            </div>
+
+            <EarningsModal
+              open={modal === 'vendor'}
+              onClose={() => setModal(null)}
+              title={`Vendor earnings — ${periodLabel}`}
+              earnings={vendorEarnings}
+              names={names}
             />
-          </div>
+            <EarningsModal
+              open={modal === 'rider'}
+              onClose={() => setModal(null)}
+              title={`Rider earnings — ${periodLabel}`}
+              earnings={riderEarnings}
+              names={names}
+            />
+          </>
         )}
       </AsyncBoundary>
     </>
+  );
+}
+
+function EarningsModal({
+  open, onClose, title, earnings, names,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  earnings: BeneficiaryEarning[];
+  names: Map<string, string>;
+}) {
+  return (
+    <Modal open={open} onClose={onClose} title={title}>
+      {earnings.length === 0 ? (
+        <p className="text-sm text-muted">No earnings for this period.</p>
+      ) : (
+        <ul className="divide-y divide-muted/10">
+          {earnings.map((e) => (
+            <li key={e.id} className="flex items-center justify-between py-2.5 text-sm">
+              <span className="text-ink dark:text-white">
+                {names.get(e.id) ?? `Unknown (${e.id.slice(0, 8)})`}
+              </span>
+              <span className="font-semibold tabular-nums text-ink dark:text-white">
+                {formatKobo(e.totalKobo)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
   );
 }
 
@@ -105,7 +181,7 @@ const TONE: Record<string, string> = {
 };
 
 function PoolCard({
-  icon, tone, title, amount, breakdown, badge, footnote,
+  icon, tone, title, amount, breakdown, badge, footnote, onClick,
 }: {
   icon: ReactNode;
   tone: keyof typeof TONE;
@@ -114,9 +190,19 @@ function PoolCard({
   breakdown?: PoolBreakdown;
   badge?: ReactNode;
   footnote?: ReactNode;
+  onClick?: () => void;
 }) {
+  const clickable = !!onClick;
+  const Tag = clickable ? 'button' : 'div';
   return (
-    <div className="glass-card rounded-3xl p-6 flex flex-col">
+    <Tag
+      {...(clickable ? { onClick, type: 'button' as const } : {})}
+      className={`glass-card rounded-3xl p-6 flex flex-col text-left w-full ${
+        clickable
+          ? 'cursor-pointer transition-shadow hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
+          : ''
+      }`}
+    >
       <div className="flex items-center justify-between">
         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${TONE[tone]}`}>{icon}</div>
         {badge}
@@ -133,8 +219,9 @@ function PoolCard({
         </dl>
       )}
 
+      {clickable && <p className="mt-3 text-xs font-medium text-primary">View earnings →</p>}
       {footnote && <div className="mt-4 text-xs text-muted">{footnote}</div>}
-    </div>
+    </Tag>
   );
 }
 
@@ -152,10 +239,13 @@ function PlatformCard({ platform }: { platform: ReturnType<typeof computePools>[
         tone="platform"
         title="Platform money"
         amount="—"
-        footnote="Unavailable — total collected not reported for this period. A backend finance endpoint is needed for a reliable figure."
+        footnote="Unavailable — no paid payments reported for this period. A backend finance endpoint is needed for a reliable figure."
       />
     );
   }
+
+  // collected − refunds − gross = vendor + rider payables.
+  const payablesKobo = (platform.collectedKobo ?? 0) - platform.refundsKobo - (platform.grossKobo ?? 0);
 
   return (
     <PoolCard
@@ -167,8 +257,13 @@ function PlatformCard({ platform }: { platform: ReturnType<typeof computePools>[
       footnote={
         <div className="space-y-2">
           <dl className="space-y-2">
-            <Row label="Collected" value={formatKobo(platform.collectedKobo)} />
-            <Row label="− Vendor + rider" value={formatKobo((platform.collectedKobo ?? 0) - (platform.grossKobo ?? 0))} />
+            <Row label="Collected (paid only)" value={formatKobo(platform.collectedKobo)} />
+            <Row label="− Refunds" value={formatKobo(platform.refundsKobo)} />
+            <Row label="− Vendor + rider" value={formatKobo(payablesKobo)} />
+            <Row label="− Est. Paystack fee" value={formatKobo(platform.estFeeKobo ?? 0)} />
+            <div className="pt-2 border-t border-muted/15">
+              <Row label="Net (est.)" value={formatKobo(platform.netEstKobo ?? 0)} emphasize />
+            </div>
           </dl>
           {platform.negative && (
             <p className="flex items-start gap-1.5 text-danger">
@@ -177,17 +272,19 @@ function PlatformCard({ platform }: { platform: ReturnType<typeof computePools>[
               orders paid in another period). Treat with caution.
             </p>
           )}
-          <p>Derived, gross of Paystack fees — not a settled figure.</p>
+          <p>Real paid orders only, minus processed refunds. Fee &amp; net are estimates — not a settled figure.</p>
         </div>
       }
     />
   );
 }
 
-function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+function Row({
+  label, value, muted, emphasize,
+}: { label: string; value: string; muted?: boolean; emphasize?: boolean }) {
   return (
     <div className="flex items-center justify-between">
-      <dt className="text-muted">{label}</dt>
+      <dt className={emphasize ? 'font-medium text-ink dark:text-white' : 'text-muted'}>{label}</dt>
       <dd className={muted ? 'text-muted tabular-nums' : 'font-semibold text-ink dark:text-white tabular-nums'}>{value}</dd>
     </div>
   );

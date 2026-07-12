@@ -4,8 +4,12 @@ import {
   summarizeSettlements,
   periodRange,
   inRange,
+  estimatePaystackFeeKobo,
+  sumPaidCollected,
+  sumProcessedRefunds,
+  groupByBeneficiary,
 } from '@/lib/finance';
-import type { SettlementListItem } from '@/lib/types';
+import type { SettlementListItem, PaymentListItem, RefundListItem } from '@/lib/types';
 
 function settlement(over: Partial<SettlementListItem>): SettlementListItem {
   return {
@@ -19,6 +23,46 @@ function settlement(over: Partial<SettlementListItem>): SettlementListItem {
     paidAt: null,
     externalReference: null,
     createdAt: '2026-07-05T00:00:00Z',
+    ...over,
+  };
+}
+
+function payment(over: Partial<PaymentListItem>): PaymentListItem {
+  return {
+    id: 'p1',
+    paymentReference: 'ref',
+    paystackReference: null,
+    orderId: 'o1',
+    customerId: 'cust',
+    customerName: null,
+    customerEmail: null,
+    customerPhone: null,
+    vendorId: 'v1',
+    vendorDisplayName: 'V',
+    campusId: 'c1',
+    amountExpectedKobo: 0,
+    amountPaidKobo: 0,
+    currency: 'NGN',
+    paymentStatus: 'paid',
+    ...over,
+  } as PaymentListItem;
+}
+
+function refund(over: Partial<RefundListItem>): RefundListItem {
+  return {
+    id: 'r1',
+    orderId: 'o1',
+    paymentReference: 'ref',
+    customerName: null,
+    customerEmail: null,
+    vendorDisplayName: 'V',
+    amountKobo: 0,
+    currency: 'NGN',
+    reason: 'x',
+    status: 'processed',
+    requestedAt: '2026-07-05T00:00:00Z',
+    processedAt: '2026-07-05T00:00:00Z',
+    adminActionRequired: false,
     ...over,
   };
 }
@@ -82,6 +126,91 @@ describe('computePools', () => {
   it('handles NaN collected as unavailable', () => {
     const pools = computePools(vendor, rider, Number.NaN);
     expect(pools.platform.available).toBe(false);
+  });
+
+  it('subtracts refunds and an estimated fee for the net figure', () => {
+    // collected 300000 (₦3,000), refunds 10000, vendor 50000, rider 7500
+    const pools = computePools(vendor, rider, 300000, 10000);
+    expect(pools.platform.refundsKobo).toBe(10000);
+    expect(pools.platform.grossKobo).toBe(232500); // 300000 − 10000 − 50000 − 7500
+    // fee on 300000: 1.5% (4500) + ₦100 flat (10000) = 14500 (above waiver threshold)
+    expect(pools.platform.estFeeKobo).toBe(14500);
+    expect(pools.platform.netEstKobo).toBe(218000); // 232500 − 14500
+  });
+});
+
+describe('estimatePaystackFeeKobo', () => {
+  it('is zero for zero or negative input', () => {
+    expect(estimatePaystackFeeKobo(0)).toBe(0);
+    expect(estimatePaystackFeeKobo(-500)).toBe(0);
+  });
+
+  it('waives the ₦100 flat below ₦2,500', () => {
+    // ₦2,000 → 1.5% = ₦30, no flat
+    expect(estimatePaystackFeeKobo(200000)).toBe(3000);
+  });
+
+  it('adds the ₦100 flat at or above ₦2,500', () => {
+    // ₦2,500 → 1.5% (₦37.50 = 3750 kobo) + ₦100 (10000) = 13750
+    expect(estimatePaystackFeeKobo(250000)).toBe(13750);
+  });
+
+  it('caps the fee at ₦2,000', () => {
+    // ₦1,000,000 → 1.5% = ₦15,000 + ₦100, capped to ₦2,000
+    expect(estimatePaystackFeeKobo(100000000)).toBe(200000);
+  });
+});
+
+describe('sumPaidCollected', () => {
+  it('counts paid and partially_refunded, ignores everything else', () => {
+    const total = sumPaidCollected([
+      payment({ paymentStatus: 'paid', amountPaidKobo: 10000 }),
+      payment({ paymentStatus: 'partially_refunded', amountPaidKobo: 5000 }),
+      payment({ paymentStatus: 'pending', amountPaidKobo: 9999 }),
+      payment({ paymentStatus: 'failed', amountPaidKobo: 9999 }),
+      payment({ paymentStatus: 'abandoned', amountPaidKobo: 9999 }),
+      payment({ paymentStatus: 'refunded', amountPaidKobo: 9999 }),
+    ]);
+    expect(total).toBe(15000);
+  });
+});
+
+describe('sumProcessedRefunds', () => {
+  const range = { dateFrom: '2026-07-01', dateTo: '2026-07-11' };
+
+  it('sums only processed refunds with processedAt in range', () => {
+    const total = sumProcessedRefunds([
+      refund({ status: 'processed', amountKobo: 1000, processedAt: '2026-07-05T10:00:00Z' }),
+      refund({ status: 'processed', amountKobo: 2000, processedAt: '2026-07-11T23:00:00Z' }),
+      refund({ status: 'processed', amountKobo: 4000, processedAt: '2026-06-30T10:00:00Z' }), // out of range
+      refund({ status: 'processing', amountKobo: 8000, processedAt: '2026-07-05T10:00:00Z' }), // not processed
+      refund({ status: 'processed', amountKobo: 8000, processedAt: null }), // never left
+    ], range);
+    expect(total).toBe(3000);
+  });
+});
+
+describe('groupByBeneficiary', () => {
+  it('sums per beneficiary, excludes cancelled, sorts desc', () => {
+    const rows = groupByBeneficiary([
+      settlement({ vendorId: 'v1', payableKobo: 1000 }),
+      settlement({ vendorId: 'v1', payableKobo: 500 }),
+      settlement({ vendorId: 'v2', payableKobo: 3000 }),
+      settlement({ vendorId: 'v2', status: 'cancelled', payableKobo: 9999 }),
+      settlement({ vendorId: null, payableKobo: 100 }),
+    ], 'vendor');
+    expect(rows).toEqual([
+      { id: 'v2', totalKobo: 3000 },
+      { id: 'v1', totalKobo: 1500 },
+    ]);
+  });
+
+  it('reads riderId when grouping riders', () => {
+    const rows = groupByBeneficiary([
+      settlement({ riderId: 'r1', payableKobo: 700 }),
+      settlement({ vendorId: 'v1', payableKobo: 9999 }), // no riderId → skipped
+    ], 'rider');
+    expect(rows).toEqual([{ id: 'r1', totalKobo: 700 }]);
   });
 });
 

@@ -11,7 +11,12 @@
 
 import { startOfWeek, startOfMonth, format } from 'date-fns';
 import { api, type Query } from './api';
-import type { SettlementListItem, BeneficiaryType } from './types';
+import type {
+  SettlementListItem,
+  BeneficiaryType,
+  PaymentListItem,
+  RefundListItem,
+} from './types';
 
 export type FinancePeriod = 'today' | 'week' | 'month' | 'all';
 
@@ -58,8 +63,14 @@ export interface PlatformPool {
   /** Derived estimate, gross of Paystack fees. null when total_collected is unknown. */
   grossKobo: number | null;
   collectedKobo: number | null;
+  /** Processed refunds subtracted from collected. */
+  refundsKobo: number;
+  /** Estimated Paystack processing fee on the collected amount. null when unavailable. */
+  estFeeKobo: number | null;
+  /** grossKobo − estFeeKobo — an estimate on top of the derived gross. null when unavailable. */
+  netEstKobo: number | null;
   available: boolean;
-  /** collected − payables came out below zero (data/timing mismatch) — show with caution. */
+  /** collected − refunds − payables came out below zero (data/timing mismatch) — show with caution. */
   negative: boolean;
 }
 
@@ -91,17 +102,85 @@ export function summarizeSettlements(settlements: SettlementListItem[]): PoolBre
   return b;
 }
 
+/**
+ * Estimated Paystack (Nigeria) processing fee for a collected amount, in kobo.
+ * Local-card pricing: 1.5% + ₦100, the flat ₦100 waived under ₦2,500, fee capped
+ * at ₦2,000. This is an ESTIMATE applied to an aggregate — Paystack charges per
+ * transaction, and the admin API does not expose real fees. Never a settled figure.
+ */
+export function estimatePaystackFeeKobo(collectedKobo: number): number {
+  if (!(collectedKobo > 0)) return 0;
+  const FLAT = 10000; // ₦100 in kobo
+  const WAIVER_THRESHOLD = 250000; // ₦2,500 in kobo
+  const CAP = 200000; // ₦2,000 in kobo
+  const percent = collectedKobo * 0.015;
+  const flat = collectedKobo < WAIVER_THRESHOLD ? 0 : FLAT;
+  return Math.min(Math.round(percent + flat), CAP);
+}
+
+/** Sum real money collected: paid + partially-refunded payments (gross of refunds). */
+export function sumPaidCollected(payments: PaymentListItem[]): number {
+  let total = 0;
+  for (const p of payments) {
+    if (p.paymentStatus === 'paid' || p.paymentStatus === 'partially_refunded') {
+      total += p.amountPaidKobo;
+    }
+  }
+  return total;
+}
+
+/** Sum refunds that actually left (status 'processed') with processedAt inside the range. */
+export function sumProcessedRefunds(refunds: RefundListItem[], range: DateRange): number {
+  let total = 0;
+  for (const r of refunds) {
+    if (r.status !== 'processed' || !r.processedAt) continue;
+    if (!inRange(r.processedAt, range)) continue;
+    total += r.amountKobo;
+  }
+  return total;
+}
+
+export interface BeneficiaryEarning {
+  id: string;
+  totalKobo: number;
+}
+
+/**
+ * Group settlements by their beneficiary (vendor or rider), summing payable.
+ * Cancelled settlements are excluded; result is sorted highest-earning first.
+ */
+export function groupByBeneficiary(
+  settlements: SettlementListItem[],
+  kind: BeneficiaryType,
+): BeneficiaryEarning[] {
+  const totals = new Map<string, number>();
+  for (const s of settlements) {
+    if (s.status === 'cancelled') continue;
+    const id = kind === 'vendor' ? s.vendorId : s.riderId;
+    if (!id) continue;
+    totals.set(id, (totals.get(id) ?? 0) + s.payableKobo);
+  }
+  return [...totals.entries()]
+    .map(([id, totalKobo]) => ({ id, totalKobo }))
+    .sort((a, b) => b.totalKobo - a.totalKobo);
+}
+
 /** Combine exact vendor/rider pools with the derived platform pool. */
 export function computePools(
   vendorSettlements: SettlementListItem[],
   riderSettlements: SettlementListItem[],
   collectedKobo: number | null,
+  refundsOutKobo = 0,
 ): MoneyPools {
   const vendor = summarizeSettlements(vendorSettlements);
   const rider = summarizeSettlements(riderSettlements);
 
   const available = typeof collectedKobo === 'number' && !Number.isNaN(collectedKobo);
-  const gross = available ? collectedKobo! - vendor.totalKobo - rider.totalKobo : null;
+  const gross = available
+    ? collectedKobo! - refundsOutKobo - vendor.totalKobo - rider.totalKobo
+    : null;
+  const estFee = available ? estimatePaystackFeeKobo(collectedKobo!) : null;
+  const netEst = gross !== null && estFee !== null ? gross - estFee : null;
 
   return {
     vendor,
@@ -109,6 +188,9 @@ export function computePools(
     platform: {
       grossKobo: gross,
       collectedKobo: available ? collectedKobo! : null,
+      refundsKobo: refundsOutKobo,
+      estFeeKobo: estFee,
+      netEstKobo: netEst,
       available,
       negative: gross !== null && gross < 0,
     },
@@ -116,22 +198,45 @@ export function computePools(
 }
 
 /**
- * Fetch every settlement for a beneficiary type by walking the cursor. The
- * settlements endpoint does NOT accept dateFrom/dateTo (it rejects unknown
- * props), so we cannot filter by range server-side — callers filter by
- * settlementDate client-side with `inRange`. List pages cap at 100
- * (lib/api.ts), capped at MAX_PAGES to bound the work.
+ * Cursor-walk bound. List pages cap at 100 (lib/api.ts); MAX_PAGES bounds the work.
+ *
+ * The settlements endpoint does NOT accept dateFrom/dateTo (it rejects unknown
+ * props), so settlement callers filter by settlementDate client-side with
+ * `inRange`. The payments endpoint DOES accept status/from/to server-side; the
+ * refunds endpoint accepts status but not a date range, so refund callers filter
+ * processedAt client-side.
  */
 const MAX_PAGES = 50;
 
 export async function fetchAllSettlements(
   params: { campusId?: string; beneficiaryType: BeneficiaryType },
 ): Promise<SettlementListItem[]> {
-  const out: SettlementListItem[] = [];
+  return walkAll((q) => api.getSettlements(q), params);
+}
+
+/** Fetch every payment matching the filters (status/date filtered server-side). */
+export async function fetchAllPayments(
+  params: { campusId?: string; status?: string; from?: string; to?: string },
+): Promise<PaymentListItem[]> {
+  return walkAll((q) => api.getPayments(q), params);
+}
+
+/** Fetch every refund matching the filters. */
+export async function fetchAllRefunds(
+  params: { campusId?: string; status?: string },
+): Promise<RefundListItem[]> {
+  return walkAll((q) => api.getRefunds(q), params);
+}
+
+/** Walk a cursor-paginated list endpoint to exhaustion, bounded by MAX_PAGES. */
+async function walkAll<T>(
+  fetchPage: (q: Query) => Promise<{ data: T[]; pagination: { hasMore: boolean; nextCursor?: string } }>,
+  params: Query,
+): Promise<T[]> {
+  const out: T[] = [];
   let cursor: string | undefined;
   for (let page = 0; page < MAX_PAGES; page++) {
-    const q: Query = { ...params, limit: 100, cursor };
-    const env = await api.getSettlements(q);
+    const env = await fetchPage({ ...params, limit: 100, cursor });
     out.push(...env.data);
     if (!env.pagination.hasMore || !env.pagination.nextCursor) break;
     cursor = env.pagination.nextCursor;
