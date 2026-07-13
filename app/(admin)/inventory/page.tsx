@@ -1,12 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { ChevronDown, Store, UtensilsCrossed, Layers } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApiQuery, useApiAction } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { INVENTORY_STATES, type InventoryRow } from '@/lib/types';
-import { titleize, formatDate } from '@/lib/format';
+import { titleize, formatDate, formatClock } from '@/lib/format';
 import { PageHeader, Card, Stat, AsyncBoundary } from '@/components/ui/Page';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -26,6 +27,45 @@ function rollupState(outCount: number, lowCount: number): 'sold_out' | 'low' | '
   if (outCount > 0) return 'sold_out';
   if (lowCount > 0) return 'low';
   return 'available';
+}
+
+/**
+ * Inline editor for a row's base total (quantity_total). Admins can set it
+ * directly here — adjustments (the delta modal) only move quantity_adjusted.
+ * Re-syncs the field when the row's total changes server-side (render-time
+ * reset pattern) so a stale value can't clobber a fresh total.
+ */
+function TotalCell({ row }: { row: InventoryRow }) {
+  const [qty, setQty] = useState(String(row.quantityTotal));
+  const [prevTotal, setPrevTotal] = useState(row.quantityTotal);
+  if (row.quantityTotal !== prevTotal) {
+    setPrevTotal(row.quantityTotal);
+    setQty(String(row.quantityTotal));
+  }
+
+  const save = useApiAction(
+    () => api.updateInventory(row.id, { quantityTotal: Number(qty) }),
+    { invalidate: [['inventory']], success: 'Total updated.' },
+  );
+
+  const n = Number(qty);
+  const valid = qty.trim() !== '' && Number.isInteger(n) && n >= 0;
+  const dirty = valid && n !== row.quantityTotal;
+
+  return (
+    <div className="flex items-center justify-end gap-2">
+      <input
+        type="number"
+        min={0}
+        value={qty}
+        onChange={(e) => setQty(e.target.value)}
+        className="w-20 px-2 py-1 rounded-lg bg-surface dark:bg-ink/50 border border-muted/20 text-sm text-right tabular-nums outline-none focus:ring-2 focus:ring-primary/40"
+      />
+      <Button size="sm" variant="subtle" loading={save.isPending} disabled={!dirty} onClick={() => save.mutate()}>
+        Save
+      </Button>
+    </div>
+  );
 }
 
 type ItemGroup = {
@@ -49,7 +89,7 @@ type VendorGroup = {
 };
 
 export default function InventoryPage() {
-  const { scopeCampusId } = useSession();
+  const { scopeCampusId, campuses } = useSession();
   const [date, setDate] = useState('');
   const [state, setState] = useState('');
   const [search, setSearch] = useState('');
@@ -75,6 +115,27 @@ export default function InventoryPage() {
     for (const v of vendorsQuery.data?.data ?? []) map.set(v.id, v.displayName);
     return (id: string) => map.get(id) ?? `Vendor ${id.slice(0, 8)}`;
   }, [vendorsQuery.data]);
+
+  // Inventory rows carry only deliverySlotId; hydrate slot names from the campus
+  // config endpoints (IDs are globally unique, so maps merge across campuses).
+  const slotQs = useQueries({
+    queries: campuses.map((c) => ({
+      queryKey: ['delivery-slots', c.id],
+      queryFn: () => api.getDeliverySlots(c.id, { limit: 100 }),
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+  const slots = slotQs.flatMap((q) => q.data?.data ?? []);
+  const slotKey = slots.map((s) => s.id).join(',');
+  const slotLabel = useMemo(() => {
+    const map = new Map(slots.map((s) => [s.id, s]));
+    return (id: string) => {
+      const s = map.get(id);
+      if (!s) return { name: `Slot ${id.slice(0, 8)}`, time: '' };
+      return { name: s.name, time: formatClock(s.deliveryTime) };
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotKey]);
 
   const adjust = useApiAction(
     () => api.adjustInventory(target!.id, { delta: Number(delta), reason }),
@@ -161,8 +222,20 @@ export default function InventoryPage() {
 
   // Slot-level columns (vendor + item live in the section headers).
   const columns: Column<InventoryRow>[] = [
+    {
+      header: 'Slot',
+      render: (r) => {
+        const s = slotLabel(r.deliverySlotId);
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium text-ink dark:text-white capitalize">{s.name}</span>
+            {s.time && <span className="text-xs text-muted tabular-nums">{s.time}</span>}
+          </div>
+        );
+      },
+    },
     { header: 'Service Date', render: (r) => formatDate(r.serviceDate) },
-    { header: 'Total', align: 'right', render: (r) => r.quantityTotal },
+    { header: 'Total', align: 'right', render: (r) => <TotalCell row={r} /> },
     { header: 'Reserved', align: 'right', render: (r) => r.quantityReserved },
     { header: 'Sold', align: 'right', render: (r) => r.quantitySold },
     { header: 'Remaining', align: 'right', render: (r) => <span className="font-bold">{r.remainingQuantity}</span> },

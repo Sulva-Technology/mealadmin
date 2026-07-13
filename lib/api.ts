@@ -272,6 +272,8 @@ export const api = {
   getInventory: (q?: Query) => request<ListEnvelope<InventoryRow>>(`/admin/inventory${qs(q)}`),
   adjustInventory: (id: string, body: { delta: number; reason: string }) =>
     post(`/admin/inventory/${id}/adjustments`, body),
+  updateInventory: (id: string, body: { quantityTotal: number }) =>
+    patch(`/admin/inventory/${id}`, body),
 
   // Escalations
   getEscalations: (q?: Query) => request<ListEnvelope<EscalationListItem>>(`/admin/escalations${qs(q)}`),
