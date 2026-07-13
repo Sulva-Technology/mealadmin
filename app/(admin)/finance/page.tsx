@@ -44,9 +44,9 @@ export default function FinancePage() {
       const [vendor, rider, payments, refunds, vendors, riders] = await Promise.all([
         fetchAllSettlements({ campusId, beneficiaryType: 'vendor' }),
         fetchAllSettlements({ campusId, beneficiaryType: 'rider' }),
-        // Payments are filtered by date server-side; status is filtered client-side
-        // by sumPaidCollected so partially_refunded payments still count as collected.
-        fetchAllPayments({ campusId, from: range.dateFrom, to: range.dateTo }),
+        // The payments endpoint rejects date params, so we fetch all and filter by
+        // createdAt + status (paid / partially_refunded) client-side below.
+        fetchAllPayments({ campusId }),
         fetchAllRefunds({ campusId, status: 'succeeded' }),
         api.getVendors({ campusId, limit: 100 }),
         api.getRiders({ campusId, limit: 100 }),
@@ -56,7 +56,7 @@ export default function FinancePage() {
       const riderInRange = rider.filter((s) => inRange(s.settlementDate, range));
 
       // Real money only: expired/pending/failed orders never reach a paid payment.
-      const collected = sumPaidCollected(payments);
+      const collected = sumPaidCollected(payments, range);
       const refundsOut = sumSucceededRefunds(refunds, range);
       const pools = computePools(vendorInRange, riderInRange, collected, refundsOut);
 

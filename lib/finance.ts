@@ -118,13 +118,17 @@ export function estimatePaystackFeeKobo(collectedKobo: number): number {
   return Math.min(Math.round(percent + flat), CAP);
 }
 
-/** Sum real money collected: paid + partially-refunded payments (gross of refunds). */
-export function sumPaidCollected(payments: PaymentListItem[]): number {
+/**
+ * Sum real money collected: paid + partially-refunded payments (gross of refunds)
+ * created inside the range. The payments endpoint does not accept date params, so
+ * callers fetch all and this filters by `createdAt` client-side.
+ */
+export function sumPaidCollected(payments: PaymentListItem[], range: DateRange): number {
   let total = 0;
   for (const p of payments) {
-    if (p.paymentStatus === 'paid' || p.paymentStatus === 'partially_refunded') {
-      total += p.amountPaidKobo;
-    }
+    if (p.paymentStatus !== 'paid' && p.paymentStatus !== 'partially_refunded') continue;
+    if (!inRange(p.createdAt, range)) continue;
+    total += p.amountPaidKobo;
   }
   return total;
 }
@@ -218,9 +222,13 @@ export async function fetchAllSettlements(
   return walkAll((q) => api.getSettlements(q), params);
 }
 
-/** Fetch every payment matching the filters (status/date filtered server-side). */
+/**
+ * Fetch every payment for the campus. The payments endpoint rejects date params
+ * (from/to), so we cannot filter by range server-side — callers filter by
+ * createdAt client-side with `sumPaidCollected`.
+ */
 export async function fetchAllPayments(
-  params: { campusId?: string; status?: string; from?: string; to?: string },
+  params: { campusId?: string },
 ): Promise<PaymentListItem[]> {
   return walkAll((q) => api.getPayments(q), params);
 }

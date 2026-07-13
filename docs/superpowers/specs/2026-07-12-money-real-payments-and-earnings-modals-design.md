@@ -25,7 +25,7 @@ The Money overview ([app/(admin)/finance/page.tsx](../../../app/(admin)/finance/
 | Figure | Source | Real-money guarantee |
 |---|---|---|
 | Vendor / Rider pools | `getSettlements` per beneficiary type, cancelled excluded | Settlements exist only for completed orders |
-| Collected | `Σ amountPaidKobo` from `getPayments`, status in (`paid`, `partially_refunded`), period | Expired / pending / failed never reach `paid` |
+| Collected | `Σ amountPaidKobo` from `getPayments`, status in (`paid`, `partially_refunded`), `createdAt` in period | Expired / pending / failed never reach `paid` |
 | Refunds out | `Σ amountKobo` from `getRefunds`, status `succeeded`, `processedAt` in period | Only money that actually left |
 | Platform gross | `collected − refundsOut − vendor − rider` | — |
 | Platform net (est.) | `gross − estPaystackFee(collected)` | estimate on an estimate |
@@ -42,8 +42,8 @@ refunds. This is the truest picture of money actually kept.
 - `estimatePaystackFeeKobo(kobo)` — Paystack NG: `1.5% + ₦100`, the `₦100` flat
   waived when amount `< ₦2,500`, total fee capped at `₦2,000`. Returns `0` for
   `0`/negative input.
-- `sumPaidCollected(payments)` — sum `amountPaidKobo` for status in
-  (`paid`, `partially_refunded`).
+- `sumPaidCollected(payments, range)` — sum `amountPaidKobo` for status in
+  (`paid`, `partially_refunded`) with `createdAt` day inside `range`.
 - `sumSucceededRefunds(refunds, range)` — sum `amountKobo` for status `succeeded`
   (backend terminal-success value; the RefundStatus type is stale) with
   `processedAt` day inside `range` (reuse `inRange`).
@@ -54,20 +54,20 @@ refunds. This is the truest picture of money actually kept.
   `refundsKobo`, `estFeeKobo`, `netEstKobo`. `grossKobo = collected − refunds −
   vendor − rider`; `netEstKobo = grossKobo − estFee(collected)` (null when
   unavailable).
-- `fetchAllPayments({ campusId, status, from, to })` and
+- `fetchAllPayments({ campusId })` (endpoint rejects date/no need for status) and
   `fetchAllRefunds({ campusId, status })` — cursor walkers mirroring
   `fetchAllSettlements`, same `MAX_PAGES` cap.
 
 ### `app/(admin)/finance/page.tsx`
 
 - Query fetches, in parallel: vendor settlements, rider settlements,
-  `fetchAllPayments({ status: 'paid', from, to })` — note the endpoint returns
-  `partially_refunded` too when unfiltered, so we fetch without a status filter and
-  filter client-side to (`paid`, `partially_refunded`) to be safe — plus
-  `fetchAllRefunds({ status: 'succeeded' })`, and vendor/rider name lists
-  (`getVendors`, `getRiders`) for the modals.
-  - Refunds are filtered client-side to `processedAt` in period via
-    `sumSucceededRefunds`.
+  `fetchAllPayments({ campusId })` — the payments endpoint rejects date params
+  (`from`/`to`) and a `status` filter would drop `partially_refunded`, so we fetch
+  all and filter client-side to (`paid`, `partially_refunded`) with `createdAt` in
+  period — plus `fetchAllRefunds({ status: 'succeeded' })`, and vendor/rider name
+  lists (`getVendors`, `getRiders`) for the modals.
+  - Collected is filtered client-side to `createdAt` in period via
+    `sumPaidCollected`; refunds to `processedAt` in period via `sumSucceededRefunds`.
 - Platform card rows: `Collected`, `− Refunds`, `− Vendor + rider`,
   `Est. Paystack fee`, **`Net (est.)`** (bold). Keep the `estimate` badge and the
   "gross of Paystack fees — not a settled figure" footnote, amended to mention the

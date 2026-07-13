@@ -44,6 +44,8 @@ function payment(over: Partial<PaymentListItem>): PaymentListItem {
     amountPaidKobo: 0,
     currency: 'NGN',
     paymentStatus: 'paid',
+    createdAt: '2026-07-05T00:00:00Z',
+    updatedAt: '2026-07-05T00:00:00Z',
     ...over,
   } as PaymentListItem;
 }
@@ -162,6 +164,8 @@ describe('estimatePaystackFeeKobo', () => {
 });
 
 describe('sumPaidCollected', () => {
+  const range = { dateFrom: '2026-07-01', dateTo: '2026-07-11' };
+
   it('counts paid and partially_refunded, ignores everything else', () => {
     const total = sumPaidCollected([
       payment({ paymentStatus: 'paid', amountPaidKobo: 10000 }),
@@ -170,8 +174,16 @@ describe('sumPaidCollected', () => {
       payment({ paymentStatus: 'failed', amountPaidKobo: 9999 }),
       payment({ paymentStatus: 'abandoned', amountPaidKobo: 9999 }),
       payment({ paymentStatus: 'refunded', amountPaidKobo: 9999 }),
-    ]);
+    ], range);
     expect(total).toBe(15000);
+  });
+
+  it('excludes payments created outside the range', () => {
+    const total = sumPaidCollected([
+      payment({ paymentStatus: 'paid', amountPaidKobo: 10000, createdAt: '2026-07-05T10:00:00Z' }),
+      payment({ paymentStatus: 'paid', amountPaidKobo: 7000, createdAt: '2026-06-30T10:00:00Z' }), // out of range
+    ], range);
+    expect(total).toBe(10000);
   });
 });
 
