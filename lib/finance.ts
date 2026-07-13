@@ -129,11 +129,15 @@ export function sumPaidCollected(payments: PaymentListItem[]): number {
   return total;
 }
 
-/** Sum refunds that actually left (status 'processed') with processedAt inside the range. */
-export function sumProcessedRefunds(refunds: RefundListItem[], range: DateRange): number {
+/**
+ * Sum refunds that actually left — the backend's terminal-success status is
+ * 'succeeded' (NOT 'processed'; the RefundStatus type in lib/types.ts is stale) —
+ * with processedAt inside the range.
+ */
+export function sumSucceededRefunds(refunds: RefundListItem[], range: DateRange): number {
   let total = 0;
   for (const r of refunds) {
-    if (r.status !== 'processed' || !r.processedAt) continue;
+    if (r.status !== 'succeeded' || !r.processedAt) continue;
     if (!inRange(r.processedAt, range)) continue;
     total += r.amountKobo;
   }

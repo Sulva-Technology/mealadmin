@@ -14,7 +14,7 @@ import {
   fetchAllPayments,
   fetchAllRefunds,
   sumPaidCollected,
-  sumProcessedRefunds,
+  sumSucceededRefunds,
   groupByBeneficiary,
   type FinancePeriod,
   type PoolBreakdown,
@@ -47,7 +47,7 @@ export default function FinancePage() {
         // Payments are filtered by date server-side; status is filtered client-side
         // by sumPaidCollected so partially_refunded payments still count as collected.
         fetchAllPayments({ campusId, from: range.dateFrom, to: range.dateTo }),
-        fetchAllRefunds({ campusId, status: 'processed' }),
+        fetchAllRefunds({ campusId, status: 'succeeded' }),
         api.getVendors({ campusId, limit: 100 }),
         api.getRiders({ campusId, limit: 100 }),
       ]);
@@ -57,7 +57,7 @@ export default function FinancePage() {
 
       // Real money only: expired/pending/failed orders never reach a paid payment.
       const collected = sumPaidCollected(payments);
-      const refundsOut = sumProcessedRefunds(refunds, range);
+      const refundsOut = sumSucceededRefunds(refunds, range);
       const pools = computePools(vendorInRange, riderInRange, collected, refundsOut);
 
       const names = new Map<string, string>();

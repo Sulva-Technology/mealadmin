@@ -6,7 +6,7 @@ import {
   inRange,
   estimatePaystackFeeKobo,
   sumPaidCollected,
-  sumProcessedRefunds,
+  sumSucceededRefunds,
   groupByBeneficiary,
 } from '@/lib/finance';
 import type { SettlementListItem, PaymentListItem, RefundListItem } from '@/lib/types';
@@ -59,7 +59,7 @@ function refund(over: Partial<RefundListItem>): RefundListItem {
     amountKobo: 0,
     currency: 'NGN',
     reason: 'x',
-    status: 'processed',
+    status: 'succeeded',
     requestedAt: '2026-07-05T00:00:00Z',
     processedAt: '2026-07-05T00:00:00Z',
     adminActionRequired: false,
@@ -175,16 +175,16 @@ describe('sumPaidCollected', () => {
   });
 });
 
-describe('sumProcessedRefunds', () => {
+describe('sumSucceededRefunds', () => {
   const range = { dateFrom: '2026-07-01', dateTo: '2026-07-11' };
 
-  it('sums only processed refunds with processedAt in range', () => {
-    const total = sumProcessedRefunds([
-      refund({ status: 'processed', amountKobo: 1000, processedAt: '2026-07-05T10:00:00Z' }),
-      refund({ status: 'processed', amountKobo: 2000, processedAt: '2026-07-11T23:00:00Z' }),
-      refund({ status: 'processed', amountKobo: 4000, processedAt: '2026-06-30T10:00:00Z' }), // out of range
-      refund({ status: 'processing', amountKobo: 8000, processedAt: '2026-07-05T10:00:00Z' }), // not processed
-      refund({ status: 'processed', amountKobo: 8000, processedAt: null }), // never left
+  it('sums only succeeded refunds with processedAt in range', () => {
+    const total = sumSucceededRefunds([
+      refund({ status: 'succeeded', amountKobo: 1000, processedAt: '2026-07-05T10:00:00Z' }),
+      refund({ status: 'succeeded', amountKobo: 2000, processedAt: '2026-07-11T23:00:00Z' }),
+      refund({ status: 'succeeded', amountKobo: 4000, processedAt: '2026-06-30T10:00:00Z' }), // out of range
+      refund({ status: 'processing', amountKobo: 8000, processedAt: '2026-07-05T10:00:00Z' }), // not succeeded
+      refund({ status: 'succeeded', amountKobo: 8000, processedAt: null }), // never left
     ], range);
     expect(total).toBe(3000);
   });

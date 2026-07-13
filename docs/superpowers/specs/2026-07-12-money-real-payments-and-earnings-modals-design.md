@@ -26,7 +26,7 @@ The Money overview ([app/(admin)/finance/page.tsx](../../../app/(admin)/finance/
 |---|---|---|
 | Vendor / Rider pools | `getSettlements` per beneficiary type, cancelled excluded | Settlements exist only for completed orders |
 | Collected | `Σ amountPaidKobo` from `getPayments`, status in (`paid`, `partially_refunded`), period | Expired / pending / failed never reach `paid` |
-| Refunds out | `Σ amountKobo` from `getRefunds`, status `processed`, `processedAt` in period | Only money that actually left |
+| Refunds out | `Σ amountKobo` from `getRefunds`, status `succeeded`, `processedAt` in period | Only money that actually left |
 | Platform gross | `collected − refundsOut − vendor − rider` | — |
 | Platform net (est.) | `gross − estPaystackFee(collected)` | estimate on an estimate |
 
@@ -44,8 +44,9 @@ refunds. This is the truest picture of money actually kept.
   `0`/negative input.
 - `sumPaidCollected(payments)` — sum `amountPaidKobo` for status in
   (`paid`, `partially_refunded`).
-- `sumProcessedRefunds(refunds, range)` — sum `amountKobo` for status `processed`
-  with `processedAt` day inside `range` (reuse `inRange`).
+- `sumSucceededRefunds(refunds, range)` — sum `amountKobo` for status `succeeded`
+  (backend terminal-success value; the RefundStatus type is stale) with
+  `processedAt` day inside `range` (reuse `inRange`).
 - `groupByBeneficiary(settlements, 'vendor' | 'rider')` → `{ id, totalKobo }[]`,
   cancelled excluded, sorted `totalKobo` desc.
 - `computePools(vendor, rider, collectedKobo, refundsOutKobo = 0)` — extended.
@@ -63,10 +64,10 @@ refunds. This is the truest picture of money actually kept.
   `fetchAllPayments({ status: 'paid', from, to })` — note the endpoint returns
   `partially_refunded` too when unfiltered, so we fetch without a status filter and
   filter client-side to (`paid`, `partially_refunded`) to be safe — plus
-  `fetchAllRefunds({ status: 'processed' })`, and vendor/rider name lists
+  `fetchAllRefunds({ status: 'succeeded' })`, and vendor/rider name lists
   (`getVendors`, `getRiders`) for the modals.
   - Refunds are filtered client-side to `processedAt` in period via
-    `sumProcessedRefunds`.
+    `sumSucceededRefunds`.
 - Platform card rows: `Collected`, `− Refunds`, `− Vendor + rider`,
   `Est. Paystack fee`, **`Net (est.)`** (bold). Keep the `estimate` badge and the
   "gross of Paystack fees — not a settled figure" footnote, amended to mention the
@@ -84,7 +85,7 @@ refunds. This is the truest picture of money actually kept.
   (with `₦100`), cap at `₦2,000`, zero input.
 - `sumPaidCollected`: includes `paid` + `partially_refunded`, excludes
   `pending`/`failed`/`abandoned`/`refunded`.
-- `sumProcessedRefunds`: only `processed`, only in-range `processedAt`.
+- `sumSucceededRefunds`: only `succeeded`, only in-range `processedAt`.
 - `groupByBeneficiary`: sums per id, excludes cancelled, sorts desc.
 - `computePools`: net math with refunds; existing tests keep passing via the
   defaulted `refundsOutKobo`.
