@@ -1,28 +1,61 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { ChevronDown, Store, UtensilsCrossed, Layers } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApiQuery, useApiAction } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
 import { INVENTORY_STATES, type InventoryRow } from '@/lib/types';
-import { titleize } from '@/lib/format';
-import { PageHeader, Card, AsyncBoundary } from '@/components/ui/Page';
+import { titleize, formatDate } from '@/lib/format';
+import { PageHeader, Card, Stat, AsyncBoundary } from '@/components/ui/Page';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { FilterSelect, TextField, TextArea } from '@/components/ui/Inputs';
+import { FilterSelect, SearchInput, TextField, TextArea } from '@/components/ui/Inputs';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 
-function stateOf(remaining: number) {
+/** Backend inventory state family for a given remaining count. */
+function stateOf(remaining: number): 'sold_out' | 'low' | 'available' {
   if (remaining <= 0) return 'sold_out';
   if (remaining <= 5) return 'low';
   return 'available';
 }
 
+/** Worst state wins for a group rollup. */
+function rollupState(outCount: number, lowCount: number): 'sold_out' | 'low' | 'available' {
+  if (outCount > 0) return 'sold_out';
+  if (lowCount > 0) return 'low';
+  return 'available';
+}
+
+type ItemGroup = {
+  key: string;
+  menuItemName: string;
+  rows: InventoryRow[];
+  remaining: number;
+  outCount: number;
+  lowCount: number;
+};
+
+type VendorGroup = {
+  key: string;
+  vendorId: string;
+  vendorName: string;
+  items: ItemGroup[];
+  slotCount: number;
+  remaining: number;
+  outCount: number;
+  lowCount: number;
+};
+
 export default function InventoryPage() {
   const { scopeCampusId } = useSession();
   const [date, setDate] = useState('');
   const [state, setState] = useState('');
+  const [search, setSearch] = useState('');
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  // Adjustment modal state.
   const [target, setTarget] = useState<InventoryRow | null>(null);
   const [delta, setDelta] = useState('');
   const [reason, setReason] = useState('');
@@ -31,6 +64,17 @@ export default function InventoryPage() {
     ['inventory', scopeCampusId, date, state],
     () => api.getInventory({ campusId: scopeCampusId ?? undefined, date: date || undefined, state: state || undefined }),
   );
+
+  // Inventory rows carry only vendorId; fetch the vendor list to resolve names.
+  const vendorsQuery = useApiQuery(
+    ['vendors', scopeCampusId],
+    () => api.getVendors({ campusId: scopeCampusId ?? undefined }),
+  );
+  const vendorName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const v of vendorsQuery.data?.data ?? []) map.set(v.id, v.displayName);
+    return (id: string) => map.get(id) ?? `Vendor ${id.slice(0, 8)}`;
+  }, [vendorsQuery.data]);
 
   const adjust = useApiAction(
     () => api.adjustInventory(target!.id, { delta: Number(delta), reason }),
@@ -41,9 +85,83 @@ export default function InventoryPage() {
     },
   );
 
+  const rows = useMemo<InventoryRow[]>(() => query.data?.data ?? [], [query.data]);
+
+  // Client-side search, then two-level grouping: vendor -> menu item -> slots.
+  const groups = useMemo<VendorGroup[]>(() => {
+    const term = search.trim().toLowerCase();
+    const filtered = term
+      ? rows.filter(
+          (r) =>
+            r.menuItemName.toLowerCase().includes(term) ||
+            vendorName(r.vendorId).toLowerCase().includes(term),
+        )
+      : rows;
+
+    const byVendor = new Map<string, VendorGroup>();
+    for (const row of filtered) {
+      let vg = byVendor.get(row.vendorId);
+      if (!vg) {
+        vg = {
+          key: `v:${row.vendorId}`,
+          vendorId: row.vendorId,
+          vendorName: vendorName(row.vendorId),
+          items: [],
+          slotCount: 0,
+          remaining: 0,
+          outCount: 0,
+          lowCount: 0,
+        };
+        byVendor.set(row.vendorId, vg);
+      }
+
+      const itemKey = `i:${row.vendorId}:${row.menuItemName}`;
+      let ig = vg.items.find((g) => g.key === itemKey);
+      if (!ig) {
+        ig = { key: itemKey, menuItemName: row.menuItemName, rows: [], remaining: 0, outCount: 0, lowCount: 0 };
+        vg.items.push(ig);
+      }
+
+      const s = stateOf(row.remainingQuantity);
+      ig.rows.push(row);
+      ig.remaining += row.remainingQuantity;
+      vg.slotCount += 1;
+      vg.remaining += row.remainingQuantity;
+      if (s === 'sold_out') { ig.outCount += 1; vg.outCount += 1; }
+      else if (s === 'low') { ig.lowCount += 1; vg.lowCount += 1; }
+    }
+
+    for (const vg of byVendor.values()) {
+      vg.items.sort((a, b) => a.menuItemName.localeCompare(b.menuItemName));
+      for (const ig of vg.items) {
+        ig.rows.sort((a, b) => a.serviceDate.localeCompare(b.serviceDate));
+      }
+    }
+    return Array.from(byVendor.values()).sort((a, b) => a.vendorName.localeCompare(b.vendorName));
+  }, [rows, search, vendorName]);
+
+  const totalOut = groups.reduce((n, g) => n + g.outCount, 0);
+  const totalLow = groups.reduce((n, g) => n + g.lowCount, 0);
+  const affectedItems = groups.reduce(
+    (n, g) => n + g.items.filter((i) => i.outCount > 0 || i.lowCount > 0).length,
+    0,
+  );
+
+  const toggle = (key: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const allCollapsed = groups.length > 0 && groups.every((g) => collapsed.has(g.key));
+  const toggleAll = () =>
+    setCollapsed(allCollapsed ? new Set() : new Set(groups.map((g) => g.key)));
+
+  // Slot-level columns (vendor + item live in the section headers).
   const columns: Column<InventoryRow>[] = [
-    { header: 'Item', render: (r) => <span className="font-medium text-ink dark:text-white">{r.menuItemName}</span> },
-    { header: 'Service Date', render: (r) => r.serviceDate },
+    { header: 'Service Date', render: (r) => formatDate(r.serviceDate) },
     { header: 'Total', align: 'right', render: (r) => r.quantityTotal },
     { header: 'Reserved', align: 'right', render: (r) => r.quantityReserved },
     { header: 'Sold', align: 'right', render: (r) => r.quantitySold },
@@ -59,17 +177,111 @@ export default function InventoryPage() {
 
   return (
     <>
-      <PageHeader title="Inventory Oversight" subtitle="Monitor stock and record audited adjustments." />
+      <PageHeader title="Inventory Oversight" subtitle="Monitor stock by vendor and record audited adjustments." />
+
       <div className="flex flex-col md:flex-row gap-3 md:items-center mb-4">
         <TextField type="date" value={date} onChange={(e) => setDate(e.target.value)} className="md:w-44" />
         <FilterSelect value={state} onChange={(e) => setState(e.target.value)}>
           <option value="">All states</option>
           {INVENTORY_STATES.map((s) => <option key={s} value={s}>{titleize(s)}</option>)}
         </FilterSelect>
+        <SearchInput
+          placeholder="Search vendor or item…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
+
+      {rows.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-3 mb-4">
+          <Stat label="Sold out" value={totalOut} hint="Slots at zero remaining" />
+          <Stat label="Low stock" value={totalLow} hint="Slots at or below 5" />
+          <Stat label="Affected items" value={affectedItems} hint="Items with a low/out slot" />
+        </div>
+      )}
+
       <Card className="overflow-hidden">
-        <AsyncBoundary query={query} empty="No inventory rows for these filters." isEmpty={(d) => d.data.length === 0}>
-          {(d) => <DataTable columns={columns} rows={d.data} rowKey={(r) => r.id} />}
+        <AsyncBoundary
+          query={query}
+          empty="No inventory rows for these filters."
+          isEmpty={(d) => d.data.length === 0}
+        >
+          {() =>
+            groups.length === 0 ? (
+              <div className="p-12 text-center text-muted">No vendors or items match your search.</div>
+            ) : (
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2 text-sm text-muted">
+                    <Layers className="w-4 h-4" />
+                    <span>{groups.length} {groups.length === 1 ? 'vendor' : 'vendors'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleAll}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    {allCollapsed ? 'Expand all' : 'Collapse all'}
+                  </button>
+                </div>
+
+                {groups.map((vg) => {
+                  const vCollapsed = collapsed.has(vg.key);
+                  return (
+                    <div key={vg.key} className="rounded-2xl border border-muted/20 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => toggle(vg.key)}
+                        className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-canvas/60 dark:hover:bg-ink/40 transition-colors"
+                      >
+                        <ChevronDown className={`w-4 h-4 text-muted shrink-0 transition-transform ${vCollapsed ? '-rotate-90' : ''}`} />
+                        <Store className="w-4 h-4 text-muted shrink-0" />
+                        <span className="font-semibold text-ink dark:text-white">{vg.vendorName}</span>
+                        <span className="text-xs text-muted">
+                          {vg.items.length} {vg.items.length === 1 ? 'item' : 'items'} · {vg.slotCount} {vg.slotCount === 1 ? 'slot' : 'slots'}
+                        </span>
+                        <div className="ml-auto flex items-center gap-3">
+                          <span className="text-xs text-muted tabular-nums">{vg.remaining} remaining</span>
+                          <StatusBadge status={rollupState(vg.outCount, vg.lowCount)} />
+                        </div>
+                      </button>
+
+                      {!vCollapsed && (
+                        <div className="border-t border-muted/20 divide-y divide-muted/10">
+                          {vg.items.map((ig) => {
+                            const iCollapsed = collapsed.has(ig.key);
+                            return (
+                              <div key={ig.key}>
+                                <button
+                                  type="button"
+                                  onClick={() => toggle(ig.key)}
+                                  className="w-full flex items-center gap-3 px-6 py-3 text-left hover:bg-canvas/40 dark:hover:bg-ink/30 transition-colors"
+                                >
+                                  <ChevronDown className={`w-3.5 h-3.5 text-muted shrink-0 transition-transform ${iCollapsed ? '-rotate-90' : ''}`} />
+                                  <UtensilsCrossed className="w-3.5 h-3.5 text-muted shrink-0" />
+                                  <span className="font-medium text-ink dark:text-white capitalize">{ig.menuItemName}</span>
+                                  <span className="text-xs text-muted">{ig.rows.length} {ig.rows.length === 1 ? 'slot' : 'slots'}</span>
+                                  <div className="ml-auto flex items-center gap-3">
+                                    <span className="text-xs text-muted tabular-nums">{ig.remaining} remaining</span>
+                                    <StatusBadge status={rollupState(ig.outCount, ig.lowCount)} />
+                                  </div>
+                                </button>
+                                {!iCollapsed && (
+                                  <div className="bg-canvas/30 dark:bg-ink/20">
+                                    <DataTable columns={columns} rows={ig.rows} rowKey={(r) => r.id} />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          }
         </AsyncBoundary>
       </Card>
 
