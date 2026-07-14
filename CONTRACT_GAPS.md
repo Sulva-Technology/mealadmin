@@ -59,12 +59,15 @@ Returns the list fields plus `orderSummary`, `customer`, `vendor`,
 `riderDelivery`, `amountBreakdown`, `paystackVerification`, `webhookEvents`,
 `refundHistory`, `adminNotes`, `adminActions`, `timeline`, `settlementImpact`.
 
-Mutation endpoints:
+Mutation endpoints (implemented in `mealdirectbackend` 2026-07-13):
 
-- `POST /v1/admin/payments/:id/verify`
-- `POST /v1/admin/payments/:id/review` body `{ note?: string }`
-- `POST /v1/admin/payments/:id/notes` body `{ note: string }`
+- `POST /v1/admin/payments/:id/verify` — alias of reconcile (Paystack verify + local reconcile)
+- `POST /v1/admin/payments/:id/review` body `{ note?: string }` — audited; note stored
+- `POST /v1/admin/payments/:id/notes` body `{ note: string }` — admin_support_notes
 - `POST /v1/admin/payments/:id/refunds` body `{ amountKobo: number, reason: string }`
+  (`reason` accepted; mapped to `reasonCode: 'admin_manual'` + `reasonText`)
+- `POST /v1/admin/payments/:id/force-paid` body `{ reason: string }` — marks paid without
+  Paystack verify (money confirmed out-of-band); wired to the "Force mark paid" button
 
 Backend must enforce refund eligibility, permissions, idempotency,
 duplicate-refund prevention, and settlement impact.
@@ -100,13 +103,15 @@ Returns the list fields plus `originalPayment`, `orderSummary`,
 `customerReason`, `eligibilityState`, `paystackRefundStatus`, `timeline`,
 `adminNotes`, `settlementImpact`.
 
-Mutation endpoints:
+Mutation endpoints (implemented in `mealdirectbackend` 2026-07-13):
 
 - `POST /v1/admin/refunds/:id/approve` body `{ note?: string }`
 - `POST /v1/admin/refunds/:id/reject` body `{ reason: string }`
-- `POST /v1/admin/refunds/:id/initiate` body `{ amountKobo: number, reason: string }`
+- `POST /v1/admin/refunds/:id/initiate` body `{ amountKobo: number, reason: string }` —
+  pushes an `approved` refund to Paystack; amount may be lowered, never raised
 - `POST /v1/admin/refunds/:id/retry`
-- `POST /v1/admin/refunds/:id/mark-manually-resolved` body `{ note: string }`
+- `POST /v1/admin/refunds/:id/mark-manually-resolved` body `{ note: string }` —
+  terminal `succeeded` with resolution note
 - `POST /v1/admin/refunds/:id/notes` body `{ note: string }`
 
 Backend must enforce permissions, idempotency, duplicate prevention, Paystack
@@ -139,11 +144,16 @@ Mutation endpoints:
 
 ## Required Support Workflow Endpoints
 
+Implemented in `mealdirectbackend` 2026-07-13 (requires migration
+`20260713000100_admin_support_notes_user_escalations.sql`):
+
 - `POST /v1/admin/orders/:id/notes` body `{ note: string }`
 - `POST /v1/admin/orders/:id/escalations` body `{ reason: string }`
 - `POST /v1/admin/users/:id/notes` body `{ note: string }`
-- `POST /v1/admin/users/:id/escalations` body `{ reason: string }`
-- `POST /v1/admin/users/:id/issues/resolve` body `{ note?: string }`
+- `POST /v1/admin/users/:id/escalations` body `{ reason: string }` — order-less
+  escalation via new `escalations.user_id`
+- `POST /v1/admin/users/:id/issues/resolve` body `{ note?: string }` — resolves all
+  open escalations where the user is subject or opener
 
 ## Vendor Invitation Endpoints (wired)
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Flag, RefreshCw, Undo2 } from 'lucide-react';
+import { Flag, RefreshCw, ShieldAlert, Undo2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
@@ -33,8 +33,10 @@ export default function PaymentDetailPage() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
+  const [forcePaidOpen, setForcePaidOpen] = useState(false);
   const [note, setNote] = useState('');
   const [refundReason, setRefundReason] = useState('');
+  const [forcePaidReason, setForcePaidReason] = useState('');
 
   const invalidate = [['payment', paymentId], ['payments'], ['payment-queues']];
   const verify = useApiAction(() => api.verifyPayment(paymentId), {
@@ -50,6 +52,11 @@ export default function PaymentDetailPage() {
     invalidate,
     success: 'Internal note added.',
     onSuccess: () => { setNoteOpen(false); setNote(''); },
+  });
+  const forcePaid = useApiAction(() => api.forcePaymentPaid(paymentId, { reason: forcePaidReason }), {
+    invalidate,
+    success: 'Payment force-marked as paid.',
+    onSuccess: () => { setForcePaidOpen(false); setForcePaidReason(''); },
   });
   const refund = useApiAction((amountKobo: number) => api.createRefundForPayment(paymentId, { amountKobo, reason: refundReason }), {
     invalidate: [['payment', paymentId], ['payments'], ['refunds']],
@@ -103,7 +110,10 @@ export default function PaymentDetailPage() {
                     <PermissionAction className="w-full" variant="outline" action="payment.review" onClick={() => setReviewOpen(true)}>
                       <Flag className="w-4 h-4" /> Mark for review
                     </PermissionAction>
-                    <PermissionAction className="w-full" variant="danger" action="refund.initiate" disabled={!['paid', 'partially_refunded'].includes(String(payment.paymentStatus))} onClick={() => setRefundOpen(true)}>
+                    <PermissionAction className="w-full" variant="outline" action="payment.verify" disabled={payment.paymentStatus === 'successful'} onClick={() => setForcePaidOpen(true)}>
+                      <ShieldAlert className="w-4 h-4" /> Force mark paid
+                    </PermissionAction>
+                    <PermissionAction className="w-full" variant="danger" action="refund.initiate" disabled={!['successful', 'refunded'].includes(String(payment.paymentStatus))} onClick={() => setRefundOpen(true)}>
                       <Undo2 className="w-4 h-4" /> Initiate refund
                     </PermissionAction>
                     <PermissionAction className="w-full" variant="subtle" action="support.note" onClick={() => setNoteOpen(true)}>
@@ -184,6 +194,25 @@ export default function PaymentDetailPage() {
                 </>}
               >
                 <TextArea label="Note" value={note} onChange={(e) => setNote(e.target.value)} />
+              </Modal>
+
+              <Modal
+                open={forcePaidOpen}
+                onClose={() => setForcePaidOpen(false)}
+                title="Force mark paid"
+                footer={<>
+                  <Button variant="ghost" onClick={() => setForcePaidOpen(false)}>Cancel</Button>
+                  <PermissionAction action="payment.verify" variant="danger" loading={forcePaid.isPending} disabled={forcePaidReason.trim().length < 3} onClick={() => forcePaid.mutate()}>
+                    Force mark paid
+                  </PermissionAction>
+                </>}
+              >
+                <div className="space-y-4">
+                  <div className="rounded-xl bg-danger/10 border border-danger/20 p-4 text-sm text-danger">
+                    Skips Paystack verification and marks this payment successful. Only use when the money is confirmed out-of-band (e.g. bank statement). This action is audited.
+                  </div>
+                  <TextArea label="Reason (required)" value={forcePaidReason} onChange={(e) => setForcePaidReason(e.target.value)} />
+                </div>
               </Modal>
 
               <Modal

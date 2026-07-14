@@ -172,6 +172,8 @@ export const api = {
   getPayments: (q?: Query) => request<ListEnvelope<PaymentListItem>>(`/admin/payments${qs(q)}`),
   getPayment: (id: string) => request<ItemEnvelope<PaymentDetail>>(`/admin/payments/${id}`),
   verifyPayment: (id: string) => post(`/admin/payments/${id}/verify`),
+  forcePaymentPaid: (id: string, body: { reason: string }) =>
+    post(`/admin/payments/${id}/force-paid`, body),
   markPaymentForReview: (id: string, body: { note?: string }) =>
     post(`/admin/payments/${id}/review`, body),
   createRefundForPayment: (id: string, body: { amountKobo: number; reason: string }) =>
