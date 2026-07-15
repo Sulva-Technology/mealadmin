@@ -170,7 +170,7 @@ export default function PaymentsPage() {
           <PermissionAction size="sm" variant="subtle" action="payment.review" onClick={(event) => { event.stopPropagation(); setReviewPayment(p); }}>
             <Flag className="w-4 h-4" /> Mark for review
           </PermissionAction>
-          <PermissionAction size="sm" variant="outline" action="refund.initiate" disabled={!['successful', 'refunded'].includes(String(p.paymentStatus))} onClick={(event) => { event.stopPropagation(); setRefundPayment(p); }}>
+          <PermissionAction size="sm" variant="outline" action="refund.initiate" disabled={!['paid', 'refunded'].includes(String(p.paymentStatus))} onClick={(event) => { event.stopPropagation(); setRefundPayment(p); }}>
             <Undo2 className="w-4 h-4" /> Initiate refund
           </PermissionAction>
           <Link href={`/orders/${p.orderId}`} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-muted/30 text-ink dark:text-muted hover:bg-canvas font-medium">Open order</Link>

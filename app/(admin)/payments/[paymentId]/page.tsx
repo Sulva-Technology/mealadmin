@@ -110,10 +110,10 @@ export default function PaymentDetailPage() {
                     <PermissionAction className="w-full" variant="outline" action="payment.review" onClick={() => setReviewOpen(true)}>
                       <Flag className="w-4 h-4" /> Mark for review
                     </PermissionAction>
-                    <PermissionAction className="w-full" variant="outline" action="payment.verify" disabled={payment.paymentStatus === 'successful'} onClick={() => setForcePaidOpen(true)}>
+                    <PermissionAction className="w-full" variant="outline" action="payment.verify" disabled={payment.paymentStatus === 'paid'} onClick={() => setForcePaidOpen(true)}>
                       <ShieldAlert className="w-4 h-4" /> Force mark paid
                     </PermissionAction>
-                    <PermissionAction className="w-full" variant="danger" action="refund.initiate" disabled={!['successful', 'refunded'].includes(String(payment.paymentStatus))} onClick={() => setRefundOpen(true)}>
+                    <PermissionAction className="w-full" variant="danger" action="refund.initiate" disabled={!['paid', 'refunded'].includes(String(payment.paymentStatus))} onClick={() => setRefundOpen(true)}>
                       <Undo2 className="w-4 h-4" /> Initiate refund
                     </PermissionAction>
                     <PermissionAction className="w-full" variant="subtle" action="support.note" onClick={() => setNoteOpen(true)}>
