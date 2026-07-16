@@ -11,19 +11,21 @@ export type Column<T> = {
 };
 
 export function DataTable<T>({
-  columns, rows, rowKey, rowHref,
+  columns, rows, rowKey, rowHref, layout = 'fixed',
 }: {
   columns: Column<T>[];
   rows: T[];
   rowKey: (row: T) => string;
   rowHref?: (row: T) => string;
+  /** 'fixed' spreads columns to equal widths; 'auto' sizes each to its content. */
+  layout?: 'fixed' | 'auto';
 }) {
   const router = useRouter();
   const align = (a?: string) => (a === 'right' ? 'text-right' : a === 'center' ? 'text-center' : 'text-left');
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] table-fixed text-left border-collapse">
+      <table className={`w-full min-w-[760px] ${layout === 'auto' ? 'table-auto' : 'table-fixed'} text-left border-collapse`}>
         <thead>
           <tr className="border-b border-muted/20 bg-canvas dark:bg-ink/50">
             {columns.map((c, i) => (

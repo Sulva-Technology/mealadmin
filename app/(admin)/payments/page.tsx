@@ -20,7 +20,7 @@ import { FilterSelect, SearchInput, TextArea, TextField } from '@/components/ui/
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ListView } from '@/components/admin/ListView';
 import { PermissionAction } from '@/components/admin/Permission';
-import { CopyButton, CustomerCell, MoneyPair, PaymentIdentity } from '@/components/admin/finance/FinanceUI';
+import { CustomerCell, MoneyPair, PaymentIdentity } from '@/components/admin/finance/FinanceUI';
 import type { Column } from '@/components/ui/DataTable';
 
 const queueCards: { key: string; label: string }[] = [
@@ -142,41 +142,70 @@ export default function PaymentsPage() {
   });
 
   const columns: Column<PaymentListItem>[] = [
-    { header: 'Payment reference', render: (p) => <PaymentIdentity payment={p} /> },
-    { header: 'Order ID', render: (p) => <div><div className="font-mono text-xs">{p.orderId}</div><div className="text-xs text-muted">{p.orderNumber ?? ''}</div></div> },
+    { header: 'Payment', render: (p) => <PaymentIdentity payment={p} /> },
+    {
+      header: 'Order',
+      render: (p) => (
+        <div>
+          <div className="font-medium text-ink dark:text-white">{p.orderNumber ?? p.orderId}</div>
+          <div className="font-mono text-xs text-muted">{p.orderId}</div>
+        </div>
+      ),
+    },
     { header: 'Customer', render: (p) => <CustomerCell name={p.customerName} email={p.customerEmail} phone={p.customerPhone} /> },
-    { header: 'Vendor', render: (p) => p.vendorDisplayName },
-    { header: 'Campus', render: (p) => p.campusName ?? p.campusId },
+    {
+      header: 'Vendor',
+      render: (p) => (
+        <div>
+          <div className="text-ink dark:text-white">{p.vendorDisplayName}</div>
+          <div className="text-xs text-muted">{p.campusName ?? p.campusId}</div>
+        </div>
+      ),
+    },
     { header: 'Amount', align: 'right', render: (p) => <MoneyPair expected={p.amountExpectedKobo} paid={p.amountPaidKobo} currency={p.currency} /> },
-    { header: 'Payment', render: (p) => <StatusBadge status={p.paymentStatus} /> },
-    { header: 'Order', render: (p) => <StatusBadge status={p.orderStatus} /> },
-    { header: 'Webhook', render: (p) => <StatusBadge status={p.webhookReceived ? 'received' : 'not_received'} tone={p.webhookReceived ? 'success' : 'warning'} /> },
-    { header: 'Verification', render: (p) => <StatusBadge status={p.verificationStatus} /> },
-    { header: 'Refund', render: (p) => <StatusBadge status={p.refundStatus} /> },
-    { header: 'Created', render: (p) => formatDateTime(p.createdAt) },
-    { header: 'Updated', render: (p) => formatDateTime(p.updatedAt) },
+    {
+      header: 'Status',
+      render: (p) => (
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap gap-1.5">
+            <StatusBadge status={p.paymentStatus} />
+            {p.refundStatus && p.refundStatus !== 'none' && <StatusBadge status={p.refundStatus} />}
+          </div>
+          <div className="text-xs text-muted">Order: {titleize(p.orderStatus)}</div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted">
+            <span className={p.webhookReceived ? '' : 'text-warning font-medium'}>{p.webhookReceived ? 'Webhook ✓' : 'No webhook'}</span>
+            <span aria-hidden>·</span>
+            <span>{titleize(p.verificationStatus)}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: 'Created',
+      render: (p) => (
+        <div>
+          <div className="text-ink dark:text-muted">{formatDateTime(p.createdAt)}</div>
+          <div className="text-xs text-muted">Updated {formatDateTime(p.updatedAt)}</div>
+        </div>
+      ),
+    },
     {
       header: 'Actions',
+      align: 'right',
       render: (p) => (
-        <div className="flex flex-wrap gap-2 min-w-[300px]">
-          <Link href={`/payments/${p.id}`} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-muted/30 text-ink dark:text-muted hover:bg-canvas font-medium">
-            <Eye className="w-4 h-4" /> Open detail
+        <div className="flex flex-col items-stretch gap-1.5 min-w-[132px]" onClick={(event) => event.stopPropagation()}>
+          <PermissionAction size="sm" variant="outline" action="payment.verify" loading={verify.isPending} onClick={() => verify.mutate(p.id)}>
+            <RefreshCw className="w-4 h-4" /> Verify
+          </PermissionAction>
+          <PermissionAction size="sm" variant="subtle" action="payment.review" onClick={() => setReviewPayment(p)}>
+            <Flag className="w-4 h-4" /> Review
+          </PermissionAction>
+          <PermissionAction size="sm" variant="outline" action="refund.initiate" disabled={!['paid', 'refunded'].includes(String(p.paymentStatus))} onClick={() => setRefundPayment(p)}>
+            <Undo2 className="w-4 h-4" /> Refund
+          </PermissionAction>
+          <Link href={`/payments/${p.id}`} onClick={(event) => event.stopPropagation()} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-muted/30 text-ink dark:text-muted hover:bg-canvas font-medium">
+            <Eye className="w-4 h-4" /> Detail
           </Link>
-          <CopyButton value={p.paymentReference} label="Copy payment reference" />
-          <CopyButton value={p.orderId} label="Copy order ID" />
-          <PermissionAction size="sm" variant="outline" action="payment.verify" loading={verify.isPending} onClick={(event) => { event.stopPropagation(); verify.mutate(p.id); }}>
-            <RefreshCw className="w-4 h-4" /> Verify with Paystack
-          </PermissionAction>
-          <PermissionAction size="sm" variant="subtle" action="payment.review" onClick={(event) => { event.stopPropagation(); setReviewPayment(p); }}>
-            <Flag className="w-4 h-4" /> Mark for review
-          </PermissionAction>
-          <PermissionAction size="sm" variant="outline" action="refund.initiate" disabled={!['paid', 'refunded'].includes(String(p.paymentStatus))} onClick={(event) => { event.stopPropagation(); setRefundPayment(p); }}>
-            <Undo2 className="w-4 h-4" /> Initiate refund
-          </PermissionAction>
-          <Link href={`/orders/${p.orderId}`} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-muted/30 text-ink dark:text-muted hover:bg-canvas font-medium">Open order</Link>
-          <Link href={`/users/${p.customerId}`} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-muted/30 text-ink dark:text-muted hover:bg-canvas font-medium">Open customer</Link>
-          <Link href={`/vendors/${p.vendorId}`} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-muted/30 text-ink dark:text-muted hover:bg-canvas font-medium">Open vendor</Link>
-          {p.settlementId && <Link href={`/settlements/${p.settlementId}`} className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-muted/30 text-ink dark:text-muted hover:bg-canvas font-medium">Open settlement</Link>}
         </div>
       ),
     },
@@ -203,6 +232,7 @@ export default function PaymentsPage() {
         }}
         fetch={(q) => api.getPayments(q)}
         columns={columns}
+        tableLayout="auto"
         rowKey={(p) => p.id}
         rowHref={(p) => `/payments/${p.id}`}
         empty="No payments match these filters."

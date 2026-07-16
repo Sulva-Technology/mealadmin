@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/Button';
  * `params` into the request + query key, and renders toolbar + table + paging.
  */
 export function ListView<T>({
-  baseKey, params, fetch, columns, rowKey, rowHref, empty, toolbar,
+  baseKey, params, fetch, columns, rowKey, rowHref, empty, toolbar, tableLayout,
 }: {
   baseKey: string;
   params: Query;
@@ -26,6 +26,7 @@ export function ListView<T>({
   rowHref?: (row: T) => string;
   empty: string;
   toolbar?: ReactNode;
+  tableLayout?: 'fixed' | 'auto';
 }) {
   const pager = useCursorList();
   const paramSig = JSON.stringify(params);
@@ -48,7 +49,7 @@ export function ListView<T>({
         <AsyncBoundary query={query} empty={empty} isEmpty={(d) => d.data.length === 0}>
           {(data) => (
             <>
-              <DataTable columns={columns} rows={data.data} rowKey={rowKey} rowHref={rowHref} />
+              <DataTable columns={columns} rows={data.data} rowKey={rowKey} rowHref={rowHref} layout={tableLayout} />
               <Pagination
                 pagination={data.pagination}
                 count={data.data.length}
