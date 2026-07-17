@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useApiAction, useApiQuery } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
-import { SETTLEMENT_STATUSES, type SettlementListItem, type BeneficiaryType } from '@/lib/types';
+import { SETTLEMENT_STATUSES, type SettlementListItem, type BeneficiaryType, type OrderListItem } from '@/lib/types';
+import { assessSettlementReadiness, fetchVendorOrdersForDate } from '@/lib/settlement-readiness';
 import { formatKobo, formatDate, titleize, todayISO } from '@/lib/format';
 import { PageHeader } from '@/components/ui/Page';
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
+import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { FilterSelect, TextField, Select } from '@/components/ui/Inputs';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ListView } from '@/components/admin/ListView';
@@ -42,6 +43,9 @@ export default function SettlementsPage() {
   const [bId, setBId] = useState('');
   const [bDate, setBDate] = useState(todayISO());
 
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [completeOrder, setCompleteOrder] = useState<OrderListItem | null>(null);
+
   const vendorsParams = { campusId: scopeCampusId ?? undefined, status: 'approved', limit: 100 };
   const ridersParams = { campusId: scopeCampusId ?? undefined, status: 'verified', limit: 100 };
 
@@ -71,6 +75,26 @@ export default function SettlementsPage() {
     },
   );
   const est = preview.data?.data;
+
+  // Which of this vendor/date's orders will the settlement actually count?
+  // Orders still in paid…out_for_delivery hold collected money the backend
+  // excludes; surface them before the admin generates a short settlement.
+  const readinessQuery = useApiQuery(
+    ['settlement-readiness', bId, bDate],
+    () => fetchVendorOrdersForDate(bId, bDate),
+    genOpen && bType === 'vendor' && !!bId && !!bDate,
+  );
+  const readiness = readinessQuery.data ? assessSettlementReadiness(readinessQuery.data) : null;
+  const awaiting = readiness?.awaiting ?? [];
+
+  const complete = useApiAction(
+    (orderId: string) => api.transitionOrder(orderId, 'administratively_completed', 'Closed out during settlement review.'),
+    {
+      invalidate: [['settlement-readiness', bId, bDate], ['orders']],
+      success: 'Order marked administratively completed.',
+      onSuccess: () => { setCompleteOrder(null); preview.reset(); },
+    },
+  );
 
   return (
     <>
@@ -128,6 +152,20 @@ export default function SettlementsPage() {
             ))}
           </Select>
           <TextField label="Settlement date" type="date" value={bDate} onChange={(e) => setBDate(e.target.value)} />
+          {bType === 'vendor' && awaiting.length > 0 && (
+            <div className="rounded-xl bg-warning/10 border border-warning/30 p-4 text-sm">
+              <p className="font-semibold text-ink dark:text-white">
+                {awaiting.length} order{awaiting.length === 1 ? '' : 's'} not yet delivered — {formatKobo(readiness!.awaitingTotalKobo)} will be excluded
+              </p>
+              <p className="text-muted mt-1">
+                The settlement only counts delivered, confirmed, administratively-completed and refunded orders.
+                Close out the day before generating, or this payable will come out short.
+              </p>
+              <Button size="sm" variant="outline" className="mt-3" onClick={() => setReviewOpen(true)}>
+                Review orders
+              </Button>
+            </div>
+          )}
           {est && (
             <div className="rounded-xl bg-canvas dark:bg-ink/60 p-4 text-sm space-y-1">
               <div className="flex justify-between"><span className="text-muted">Delivery earnings</span><span>{formatKobo(est.deliveryEarningsKobo)}</span></div>
@@ -138,6 +176,46 @@ export default function SettlementsPage() {
           )}
         </div>
       </Modal>
+
+      <Modal
+        open={reviewOpen} onClose={() => setReviewOpen(false)}
+        title={`Orders awaiting transition — ${formatDate(bDate)}`}
+        footer={<Button variant="ghost" onClick={() => setReviewOpen(false)}>Close</Button>}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-muted">
+            These orders are paid but not marked delivered, so the settlement excludes them.
+            Verify each was actually fulfilled, then mark it completed — or chase the rider/vendor to finish the flow.
+          </p>
+          <div className="divide-y divide-muted/10">
+            {awaiting.map((o) => (
+              <div key={o.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <a href={`/orders/${o.id}`} target="_blank" rel="noreferrer" className="font-semibold text-ink dark:text-white hover:underline">
+                    {o.orderNumber}
+                  </a>
+                  <div className="mt-1"><StatusBadge status={o.orderStatus} /></div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-bold">{formatKobo(o.totalKobo)}</span>
+                  <Button size="sm" variant="outline" onClick={() => setCompleteOrder(o)}>Mark completed</Button>
+                </div>
+              </div>
+            ))}
+            {awaiting.length === 0 && (
+              <p className="py-3 text-sm text-muted">All orders for this vendor and date are settled-ready. You can generate now.</p>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!completeOrder} onClose={() => setCompleteOrder(null)}
+        onConfirm={() => completeOrder && complete.mutate(completeOrder.id)}
+        loading={complete.isPending} confirmLabel="Mark completed"
+        title="Mark Order Administratively Completed"
+        message={`Mark ${completeOrder?.orderNumber ?? ''} (${completeOrder ? formatKobo(completeOrder.totalKobo) : ''}) as administratively completed? Only do this if the order was actually fulfilled — it makes the money settleable to the vendor.`}
+      />
     </>
   );
 }

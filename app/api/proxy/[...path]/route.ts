@@ -17,10 +17,34 @@ import { isSafeProxyPath } from '@/lib/proxy-guard';
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+/**
+ * CSRF defense-in-depth on top of SameSite cookies: browsers always attach
+ * Origin to cross-site fetches, so a mutating request whose Origin does not
+ * match this deployment is rejected before it reaches the backend with our
+ * bearer. Origin-less requests (same-origin navigations, non-browser clients
+ * that never carry the victim's cookies) pass through.
+ */
+function isForeignOrigin(request: NextRequest): boolean {
+  const origin = request.headers.get('origin');
+  if (!origin) return false;
+  try {
+    return new URL(origin).host !== request.nextUrl.host;
+  } catch {
+    return true;
+  }
+}
+
 async function handle(request: NextRequest, path: string[]) {
   if (!isSafeProxyPath(path)) {
     return NextResponse.json(
       { error: { code: 'FORBIDDEN_PATH', message: 'Path not allowed through this proxy.' } },
+      { status: 403 }
+    );
+  }
+
+  if (MUTATING.has(request.method.toUpperCase()) && isForeignOrigin(request)) {
+    return NextResponse.json(
+      { error: { code: 'CSRF_REJECTED', message: 'Cross-origin mutation rejected.' } },
       { status: 403 }
     );
   }
