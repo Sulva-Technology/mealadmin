@@ -18,7 +18,11 @@ export type AdminAction =
   | 'support.escalate'
   | 'support.resolve'
   | 'order.transition'
-  | 'order.cancel';
+  | 'order.cancel'
+  | 'payout.review'
+  | 'payout.transfer'
+  | 'wallet.adjust'
+  | 'wallet.freeze';
 
 export type NavItem = {
   name: string;
@@ -71,6 +75,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { name: 'Refunds', href: '/refunds', icon: 'Undo2', roles: ['super_admin', 'finance_admin', 'support_admin', 'read_only_admin'] },
       { name: 'Money', href: '/finance', icon: 'Wallet', roles: FINANCE_ROLES },
       { name: 'Settlements', href: '/settlements', icon: 'Banknote', roles: FINANCE_ROLES },
+      { name: 'Payouts', href: '/payouts', icon: 'Send', roles: FINANCE_ROLES },
+      { name: 'Wallets', href: '/wallets', icon: 'WalletCards', roles: FINANCE_ROLES },
       { name: 'Escalations', href: '/escalations', icon: 'AlertTriangle', roles: SUPPORT_ROLES },
       { name: 'Reviews', href: '/reviews', icon: 'Star', roles: SUPPORT_ROLES },
     ],
@@ -119,6 +125,10 @@ const ACTION_ROLES: Record<AdminAction, AdminRole[]> = {
   'support.resolve': SUPPORT_ROLES,
   'order.transition': OPS_ROLES,
   'order.cancel': OPS_ROLES,
+  'payout.review': FINANCE_ROLES,
+  'payout.transfer': FINANCE_ROLES,
+  'wallet.adjust': FINANCE_ROLES,
+  'wallet.freeze': FINANCE_ROLES,
 };
 
 export function hasRole(session: AdminSession | undefined, roles?: AdminRole[]): boolean {

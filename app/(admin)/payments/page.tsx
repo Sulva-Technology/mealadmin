@@ -121,6 +121,7 @@ export default function PaymentsPage() {
   const [reviewNote, setReviewNote] = useState('');
   const [refundPayment, setRefundPayment] = useState<PaymentListItem | null>(null);
   const [refundReason, setRefundReason] = useState('');
+  const [refundDestination, setRefundDestination] = useState<'wallet' | 'paystack'>('wallet');
   const debounced = useDebounced(search);
 
   const verify = useApiAction((id: string) => api.verifyPayment(id), {
@@ -135,10 +136,11 @@ export default function PaymentsPage() {
   const refund = useApiAction(() => api.createRefundForPayment(refundPayment!.id, {
     amountKobo: refundPayment!.amountPaidKobo,
     reason: refundReason,
+    destination: refundDestination,
   }), {
-    invalidate: [['payments'], ['refunds']],
+    invalidate: [['payments'], ['refunds'], ['wallets']],
     success: 'Refund request submitted to backend.',
-    onSuccess: () => { setRefundPayment(null); setRefundReason(''); },
+    onSuccess: () => { setRefundPayment(null); setRefundReason(''); setRefundDestination('wallet'); },
   });
 
   const columns: Column<PaymentListItem>[] = [
@@ -297,6 +299,30 @@ export default function PaymentsPage() {
           <div className="space-y-4">
             <div className="rounded-xl bg-danger/10 border border-danger/20 p-4 text-sm text-danger">
               Refund amount: {formatKobo(refundPayment.amountPaidKobo)}. Vendor settlement may be affected. Duplicate refund action is blocked while request is in flight.
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink dark:text-white mb-1.5">Refund destination</label>
+              <div className="flex gap-2">
+                {(['wallet', 'paystack'] as const).map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setRefundDestination(d)}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition-colors ${
+                      refundDestination === d
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-muted/30 text-muted hover:bg-canvas'
+                    }`}
+                  >
+                    {d === 'wallet' ? 'Wallet (instant)' : 'Paystack (card)'}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-muted">
+                {refundDestination === 'wallet'
+                  ? 'Credits the customer wallet balance instantly.'
+                  : 'Issues a real card refund via Paystack — use for disputes and chargeback defence.'}
+              </p>
             </div>
             <TextArea label="Refund reason" value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder="Customer approved refund reason." />
           </div>

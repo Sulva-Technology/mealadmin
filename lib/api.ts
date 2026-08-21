@@ -5,6 +5,8 @@ import type {
   RiderListItem, Rider, RiderAssignment, SettlementListItem,
   InventoryRow, EscalationListItem, Escalation,
   Settlement, SettlementPreview, PayoutTransferRecord, PayoutDestination, Review, UserRecord, DeleteUserResult,
+  PayoutTransferListItem, PayoutReviewStatus, AdminWallet, AdminWalletLedgerEntry, PlatformSetting,
+  AnalyticsInsights,
   AdminMembership, AnalyticsData, AuditLog,
   VendorInvitation, VendorInvitationCreated,
   Zone, CampusLocation, DeliverySlot, LocationType, UnitType,
@@ -176,8 +178,12 @@ export const api = {
     post(`/admin/payments/${id}/force-paid`, body),
   markPaymentForReview: (id: string, body: { note?: string }) =>
     post(`/admin/payments/${id}/review`, body),
-  createRefundForPayment: (id: string, body: { amountKobo: number; reason: string }) =>
-    post(`/admin/payments/${id}/refunds`, body),
+  createRefundForPayment: (
+    id: string,
+    // v2: destination 'wallet' (default, instant credit) or 'paystack' (real
+    // card refund, for disputes/chargeback defence).
+    body: { amountKobo: number; reason: string; destination?: 'wallet' | 'paystack' },
+  ) => post(`/admin/payments/${id}/refunds`, body),
   addPaymentNote: (id: string, body: { note: string }) =>
     post(`/admin/payments/${id}/notes`, body),
   getPaymentQueues: (q?: Query) =>
@@ -304,6 +310,30 @@ export const api = {
   addSettlementAdjustment: (id: string, body: { amountKobo: number; description: string }) =>
     post(`/admin/settlements/${id}/adjustments`, body),
 
+  // Payouts (v2 automation)
+  getPayoutTransfers: (q?: Query) =>
+    request<ListEnvelope<PayoutTransferListItem>>(`/admin/payout-transfers${qs(q)}`),
+  getPayoutTransfer: (id: string) =>
+    request<ItemEnvelope<PayoutTransferListItem>>(`/admin/payout-transfers/${id}`),
+  reviewVendorPayoutAccount: (vendorId: string, body: { status: PayoutReviewStatus; failureReason?: string }) =>
+    patch(`/admin/payout-accounts/vendor/${vendorId}/review`, body),
+  reviewRiderPayoutAccount: (riderId: string, body: { status: PayoutReviewStatus; failureReason?: string }) =>
+    patch(`/admin/payout-accounts/rider/${riderId}/review`, body),
+
+  // Wallet oversight (v2)
+  getWallets: (q?: Query) => request<ListEnvelope<AdminWallet>>(`/admin/wallets${qs(q)}`),
+  getWalletLedger: (walletId: string, q?: Query) =>
+    request<ListEnvelope<AdminWalletLedgerEntry>>(`/admin/wallets/${walletId}/ledger${qs(q)}`),
+  adjustWallet: (walletId: string, body: { amountKobo: number; reason: string }) =>
+    post(`/admin/wallets/${walletId}/adjust`, body),
+  freezeWallet: (walletId: string, body: { frozen: boolean; reason?: string }) =>
+    post(`/admin/wallets/${walletId}/freeze`, body),
+
+  // Platform settings (v2 wallet + fee model)
+  getPlatformSettings: () => request<ItemEnvelope<PlatformSetting[]>>(`/admin/settings`),
+  updatePlatformSetting: (body: { key: string; value: number }) =>
+    patch('/admin/settings', body),
+
   // Reviews
   getReviews: (q?: Query) => request<ListEnvelope<Review>>(`/admin/reviews${qs(q)}`),
   moderateReview: (id: string, status: 'approved' | 'pending' | 'rejected') =>
@@ -334,5 +364,6 @@ export const api = {
 
   // Analytics & audit
   getAnalytics: (q?: Query) => request<ItemEnvelope<AnalyticsData>>(`/admin/analytics${qs(q)}`),
+  getAnalyticsInsights: (q?: Query) => request<ItemEnvelope<AnalyticsInsights>>(`/admin/analytics/insights${qs(q)}`),
   getAuditLogs: (q?: Query) => request<ListEnvelope<AuditLog>>(`/admin/audit-logs${qs(q)}`),
 };

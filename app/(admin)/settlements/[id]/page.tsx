@@ -10,7 +10,9 @@ import { PageHeader, Card, Field, AsyncBoundary } from '@/components/ui/Page';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
-import { TextField } from '@/components/ui/Inputs';
+import { TextField, TextArea } from '@/components/ui/Inputs';
+import { PermissionAction } from '@/components/admin/Permission';
+import type { PayoutReviewStatus } from '@/lib/types';
 
 export default function SettlementDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +28,8 @@ export default function SettlementDetailPage() {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [showAccount, setShowAccount] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [reviewReason, setReviewReason] = useState('');
 
   const payoutAccount = useApiQuery(
     ['payout-account', id],
@@ -47,6 +51,18 @@ export default function SettlementDetailPage() {
   });
   const adjust = useApiAction(() => api.addSettlementAdjustment(id, { amountKobo: Number(amount), description }), {
     invalidate, success: 'Adjustment added.', onSuccess: () => { setAdjOpen(false); setAmount(''); setDescription(''); },
+  });
+  // v2 payouts: approve/reject the beneficiary's payout account. Rejecting blocks
+  // automated payouts until the account is fixed and re-approved.
+  const reviewAccount = useApiAction((args: { status: PayoutReviewStatus; failureReason?: string }) => {
+    const stt = query.data?.data;
+    if (stt?.vendorId) return api.reviewVendorPayoutAccount(stt.vendorId, args);
+    if (stt?.riderId) return api.reviewRiderPayoutAccount(stt.riderId, args);
+    return Promise.reject(new Error('This settlement has no beneficiary to review.'));
+  }, {
+    invalidate: [['payout-account', id]],
+    success: 'Payout account review updated.',
+    onSuccess: () => { setRejectOpen(false); setReviewReason(''); },
   });
 
   return (
@@ -113,6 +129,15 @@ export default function SettlementDetailPage() {
                         <div className="flex justify-between gap-3 pt-1 border-t border-muted/20"><dt className="text-muted">Amount to pay</dt><dd className="font-bold text-right">{formatKobo(bank.payableKobo)}</dd></div>
                       </dl>
                     )}
+                    {bank && (
+                      <div className="mt-4 pt-3 border-t border-muted/20">
+                        <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Payout account review</p>
+                        <div className="flex gap-2">
+                          <PermissionAction action="payout.review" size="sm" loading={reviewAccount.isPending} onClick={() => reviewAccount.mutate({ status: 'approved' })}>Approve</PermissionAction>
+                          <PermissionAction action="payout.review" size="sm" variant="danger" onClick={() => setRejectOpen(true)}>Reject</PermissionAction>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>
@@ -154,6 +179,19 @@ export default function SettlementDetailPage() {
         <div className="space-y-4">
           <TextField label="Amount (kobo, signed)" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} hint="Negative reduces the payable." />
           <TextField label="Description" maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+      </Modal>
+
+      <Modal
+        open={rejectOpen} onClose={() => setRejectOpen(false)} title="Reject payout account"
+        footer={<>
+          <Button variant="ghost" onClick={() => setRejectOpen(false)}>Cancel</Button>
+          <PermissionAction action="payout.review" variant="danger" loading={reviewAccount.isPending} onClick={() => reviewAccount.mutate({ status: 'rejected', failureReason: reviewReason || undefined })}>Reject account</PermissionAction>
+        </>}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-muted">Rejecting blocks automated payouts to this beneficiary until the account is corrected and re-approved.</p>
+          <TextArea label="Reason (recorded on the account)" value={reviewReason} onChange={(e) => setReviewReason(e.target.value)} />
         </div>
       </Modal>
     </>

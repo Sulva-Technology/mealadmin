@@ -699,6 +699,93 @@ export interface PayoutTransferRecord {
   providerTransferCode: string | null;
   status: string;
 }
+export type PayoutReviewStatus = 'approved' | 'rejected' | 'pending';
+/** A payout transfer row in the admin monitor, with the derived needs_admin flag. */
+export interface PayoutTransferListItem {
+  id: string;
+  settlementId: string;
+  reference: string;
+  amountKobo: number;
+  providerTransferCode: string | null;
+  status: string;
+  attempt: number;
+  needsAdmin: boolean;
+  createdAt: string;
+}
+/** Customer wallet as seen in the admin oversight list. */
+export interface AdminWallet {
+  id: string;
+  userId: string;
+  balanceKobo: number;
+  currency: string;
+  status: string; // active | frozen
+  userEmail: string | null;
+  userDisplayName: string | null;
+  accountNumber: string | null;
+  overCap: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface AdminWalletLedgerEntry {
+  id: string;
+  entryType: string;
+  amountKobo: number;
+  balanceAfterKobo: number;
+  orderId: string | null;
+  orderNumber: string | null;
+  providerReference: string | null;
+  reason: string | null;
+  createdAt: string;
+}
+export interface PlatformSetting {
+  key: string;
+  value: unknown;
+  description: string | null;
+  updatedBy: string | null;
+  updatedAt: string;
+}
+
+// --- v2 analytics insights ---
+export interface AnalyticsTopItem {
+  menuItemId: string;
+  itemName: string;
+  quantity: number;
+  revenueKobo: number;
+}
+export interface AnalyticsHourBucket {
+  hour: number; // 0..23, local (Africa/Lagos)
+  orders: number;
+  revenueKobo: number;
+}
+export interface AnalyticsDayBucket {
+  day: string; // YYYY-MM-DD (service date)
+  orders: number;
+  revenueKobo: number;
+}
+export interface AnalyticsTopSpender {
+  customerId: string;
+  email: string | null;
+  displayName: string | null;
+  orders: number;
+  spendKobo: number;
+}
+export interface AnalyticsCustomers {
+  totalCustomers: number;
+  newCustomers: number;
+  returningCustomers: number;
+  repeatCustomers: number;
+  repeatRate: number; // percent 0..100
+  avgSpendPerCustomerKobo: number;
+  avgOrderValueKobo: number;
+  totalOrders: number;
+  topSpenders: AnalyticsTopSpender[];
+}
+export interface AnalyticsInsights {
+  topItems: AnalyticsTopItem[];
+  ordersByHour: AnalyticsHourBucket[];
+  revenueByDay: AnalyticsDayBucket[];
+  customers: AnalyticsCustomers;
+}
 export interface SettlementPreview {
   beneficiaryType: BeneficiaryType;
   beneficiaryId: string;

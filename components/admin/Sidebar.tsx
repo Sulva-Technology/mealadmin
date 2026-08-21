@@ -8,6 +8,7 @@ import {
   LayoutDashboard, ShoppingCart, Boxes, Package, Store, Bike, Users,
   Banknote, Star, AlertTriangle, BarChart3, ScrollText, ShieldCheck, Settings,
   MapPin, Bell, Ruler, CreditCard, Undo2, Activity, ListChecks, LogOut, Wallet,
+  Send, WalletCards,
   type LucideIcon,
 } from 'lucide-react';
 import { useSession } from '@/lib/session';
@@ -18,6 +19,7 @@ const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard, ShoppingCart, Boxes, Package, Store, Bike, Users,
   Banknote, Star, AlertTriangle, BarChart3, ScrollText, ShieldCheck, Settings,
   MapPin, Bell, Ruler, CreditCard, Undo2, Activity, ListChecks, Wallet,
+  Send, WalletCards,
 };
 
 export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => void }) {

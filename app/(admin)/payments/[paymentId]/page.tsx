@@ -36,6 +36,7 @@ export default function PaymentDetailPage() {
   const [forcePaidOpen, setForcePaidOpen] = useState(false);
   const [note, setNote] = useState('');
   const [refundReason, setRefundReason] = useState('');
+  const [refundDestination, setRefundDestination] = useState<'wallet' | 'paystack'>('wallet');
   const [forcePaidReason, setForcePaidReason] = useState('');
 
   const invalidate = [['payment', paymentId], ['payments'], ['payment-queues']];
@@ -58,10 +59,10 @@ export default function PaymentDetailPage() {
     success: 'Payment force-marked as paid.',
     onSuccess: () => { setForcePaidOpen(false); setForcePaidReason(''); },
   });
-  const refund = useApiAction((amountKobo: number) => api.createRefundForPayment(paymentId, { amountKobo, reason: refundReason }), {
-    invalidate: [['payment', paymentId], ['payments'], ['refunds']],
+  const refund = useApiAction((amountKobo: number) => api.createRefundForPayment(paymentId, { amountKobo, reason: refundReason, destination: refundDestination }), {
+    invalidate: [['payment', paymentId], ['payments'], ['refunds'], ['wallets']],
     success: 'Refund request submitted to backend.',
-    onSuccess: () => { setRefundOpen(false); setRefundReason(''); },
+    onSuccess: () => { setRefundOpen(false); setRefundReason(''); setRefundDestination('wallet'); },
   });
 
   return (
@@ -229,6 +230,30 @@ export default function PaymentDetailPage() {
                 <div className="space-y-4">
                   <div className="rounded-xl bg-danger/10 border border-danger/20 p-4 text-sm text-danger">
                     Refund amount: {formatKobo(payment.amountPaidKobo)}. Vendor settlement may be affected. Backend must enforce eligibility and idempotency.
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-ink dark:text-white mb-1.5">Refund destination</label>
+                    <div className="flex gap-2">
+                      {(['wallet', 'paystack'] as const).map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setRefundDestination(d)}
+                          className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                            refundDestination === d
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-muted/30 text-muted hover:bg-canvas'
+                          }`}
+                        >
+                          {d === 'wallet' ? 'Wallet (instant)' : 'Paystack (card)'}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-1.5 text-xs text-muted">
+                      {refundDestination === 'wallet'
+                        ? 'Credits the customer wallet balance instantly.'
+                        : 'Issues a real card refund via Paystack — use for disputes and chargeback defence.'}
+                    </p>
                   </div>
                   <TextArea label="Refund reason" value={refundReason} onChange={(e) => setRefundReason(e.target.value)} />
                 </div>
