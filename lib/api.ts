@@ -18,6 +18,7 @@ import type {
   PaymentListItem, PaymentDetail, PaymentQueueItem,
   RefundListItem, RefundDetail, SystemHealth, WebhookEvent, WebhookDetail,
   ChatMessage,
+  FeatureFlag, FeatureFlagMode, FeatureTester, FeatureTesterSubjectType,
 } from '@/lib/types';
 
 /** Real backend base URL. Used server-side (login + proxy route handlers). */
@@ -361,6 +362,16 @@ export const api = {
     post('/admin/admin-memberships', body),
   revokeAdminMembership: (id: string) => post(`/admin/admin-memberships/${id}/revoke`),
   activateAdminMembership: (id: string) => post(`/admin/admin-memberships/${id}/activate`),
+
+  // Feature flags + tester cohort (admin:manage — super_admin only). All writes audited.
+  getFeatureFlags: () => request<ListEnvelope<FeatureFlag>>('/admin/feature-flags'),
+  updateFeatureFlag: (key: string, mode: FeatureFlagMode) =>
+    patch(`/admin/feature-flags/${encodeURIComponent(key)}`, { mode }) as Promise<ItemEnvelope<FeatureFlag>>,
+  getFeatureTesters: () => request<ListEnvelope<FeatureTester>>('/admin/feature-testers'),
+  addFeatureTester: (body: { subjectType: FeatureTesterSubjectType; subjectId: string; note?: string }) =>
+    post('/admin/feature-testers', body) as Promise<ItemEnvelope<FeatureTester>>,
+  removeFeatureTester: (id: string) =>
+    request<ItemEnvelope<FeatureTester>>(`/admin/feature-testers/${id}`, { method: 'DELETE' }),
 
   // Analytics & audit
   getAnalytics: (q?: Query) => request<ItemEnvelope<AnalyticsData>>(`/admin/analytics${qs(q)}`),

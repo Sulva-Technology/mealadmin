@@ -880,3 +880,23 @@ export interface AuditLog {
   requestId: string | null;
   createdAt: string;
 }
+
+// --- Feature flags + test-mode cohort (admin:manage → super_admin) ---
+export type FeatureFlagMode = 'off' | 'test' | 'on';
+export type FeatureTesterSubjectType = 'user' | 'vendor';
+
+export interface FeatureFlag {
+  key: string;
+  /** off = nobody; test = tester cohort only; on = everyone. */
+  mode: FeatureFlagMode;
+  description: string | null;
+  updatedAt: string;
+}
+
+export interface FeatureTester {
+  id: string;
+  subjectType: FeatureTesterSubjectType;
+  subjectId: string;
+  note: string | null;
+  createdAt: string;
+}
