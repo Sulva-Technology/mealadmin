@@ -18,6 +18,7 @@ import type {
   PaymentListItem, PaymentDetail, PaymentQueueItem,
   RefundListItem, RefundDetail, SystemHealth, WebhookEvent, WebhookDetail,
   ChatMessage,
+  FeatureFlag, FeatureFlagMode, FeatureTester, FeatureTesterSubjectType,
 } from '@/lib/types';
 
 /** Real backend base URL. Used server-side (login + proxy route handlers). */
@@ -328,6 +329,16 @@ export const api = {
     post(`/admin/wallets/${walletId}/adjust`, body),
   freezeWallet: (walletId: string, body: { frozen: boolean; reason?: string }) =>
     post(`/admin/wallets/${walletId}/freeze`, body),
+
+  // Feature flags + test-mode cohort (super_admin only: admin:manage)
+  getFeatureFlags: () => request<ListEnvelope<FeatureFlag>>('/admin/feature-flags'),
+  setFeatureFlagMode: (key: string, mode: FeatureFlagMode) =>
+    patch(`/admin/feature-flags/${encodeURIComponent(key)}`, { mode }) as Promise<ItemEnvelope<FeatureFlag>>,
+  getFeatureTesters: () => request<ListEnvelope<FeatureTester>>('/admin/feature-testers'),
+  addFeatureTester: (body: { subjectType: FeatureTesterSubjectType; subjectId: string; note?: string }) =>
+    post('/admin/feature-testers', body) as Promise<ItemEnvelope<FeatureTester>>,
+  removeFeatureTester: (testerId: string) =>
+    request<ItemEnvelope<FeatureTester>>(`/admin/feature-testers/${testerId}`, { method: 'DELETE' }),
 
   // Platform settings (v2 wallet + fee model)
   getPlatformSettings: () => request<ItemEnvelope<PlatformSetting[]>>(`/admin/settings`),

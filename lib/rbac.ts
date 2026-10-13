@@ -100,6 +100,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'System',
     items: [
       { name: 'Admins', href: '/admins', icon: 'ShieldCheck', roles: ['super_admin'] },
+      { name: 'Feature Flags', href: '/feature-flags', icon: 'FlaskConical', roles: ['super_admin'] },
       { name: 'Notifications', href: '/notifications', icon: 'Bell', roles: ALL_ROLES },
       { name: 'Settings', href: '/settings', icon: 'Settings', roles: ['super_admin', 'operations_admin'] },
     ],

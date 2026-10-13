@@ -737,6 +737,30 @@ export interface AdminWalletLedgerEntry {
   reason: string | null;
   createdAt: string;
 }
+// ---- Feature flags (test mode) ----------------------------------------------
+
+/** off = nobody, test = feature testers only, on = everyone. */
+export type FeatureFlagMode = 'off' | 'test' | 'on';
+
+export interface FeatureFlag {
+  key: string;
+  mode: FeatureFlagMode;
+  description: string | null;
+  updatedAt: string;
+}
+
+export type FeatureTesterSubjectType = 'user' | 'vendor';
+
+/** One member of the test-mode cohort. The cohort is shared by every flag in `test`. */
+export interface FeatureTester {
+  id: string;
+  subjectType: FeatureTesterSubjectType;
+  /** profiles.id for `user`, vendors.id for `vendor`. */
+  subjectId: string;
+  note: string | null;
+  createdAt: string;
+}
+
 export interface PlatformSetting {
   key: string;
   value: unknown;

@@ -38,4 +38,10 @@ describe('admin RBAC helpers', () => {
     expect(labels).not.toContain('Settlements');
     expect(labels).not.toContain('Admins');
   });
+
+  it('limits feature flags to super admins, matching the backend admin:manage permission', () => {
+    expect(canAccessRoute(session('super_admin'), '/feature-flags')).toBe(true);
+    expect(canAccessRoute(session('campus_admin'), '/feature-flags')).toBe(false);
+    expect(canAccessRoute(session('operations_admin'), '/feature-flags')).toBe(false);
+  });
 });
