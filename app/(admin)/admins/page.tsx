@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { useApiQuery, useApiAction } from '@/lib/hooks';
+import { useToast } from '@/components/ui/Toast';
 import { useSession } from '@/lib/session';
 import { formatDate } from '@/lib/format';
 import type { AdminMembership, AdminRole } from '@/lib/types';
@@ -18,14 +19,24 @@ export default function AdminsPage() {
   const query = useApiQuery(['admin-memberships'], () => api.getAdminMemberships(), isSuperAdmin);
 
   const [open, setOpen] = useState(false);
-  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
   const [role, setRole] = useState<AdminRole>('campus_admin');
   const [campusId, setCampusId] = useState('');
 
   const invalidate = [['admin-memberships']];
+  const toast = useToast();
   const grant = useApiAction(
-    () => api.createAdminMembership({ userId, role, campusId: role === 'campus_admin' ? campusId : undefined }),
-    { invalidate, success: 'Admin created. Ask them to sign out and back in for the role to take effect.', onSuccess: () => { setOpen(false); setUserId(''); } },
+    () => api.createAdminMembership({ email: email.trim(), role, campusId: role === 'campus_admin' ? campusId : undefined }),
+    {
+      invalidate,
+      onSuccess: (res) => {
+        toast.success(res.data?.invited
+          ? `Invite sent to ${email.trim()}. They set a password from the email, then sign in.`
+          : 'Admin added. Ask them to sign out and back in for the role to take effect.');
+        setOpen(false);
+        setEmail('');
+      },
+    },
   );
   const revoke = useApiAction((id: string) => api.revokeAdminMembership(id), { invalidate, success: 'Membership revoked.' });
   const activate = useApiAction((id: string) => api.activateAdminMembership(id), { invalidate, success: 'Membership activated.' });
@@ -40,7 +51,15 @@ export default function AdminsPage() {
   }
 
   const columns: Column<AdminMembership>[] = [
-    { header: 'User', render: (m) => <span className="font-mono text-xs">{m.userId}</span> },
+    {
+      header: 'Admin',
+      render: (m) => (
+        <div>
+          <div className="text-sm">{m.email ?? m.displayName ?? '—'}</div>
+          <div className="font-mono text-[10px] text-muted">{m.userId}</div>
+        </div>
+      ),
+    },
     { header: 'Role', render: (m) => <StatusBadge status={m.role} tone={m.role === 'super_admin' ? 'info' : 'neutral'} /> },
     { header: 'Campus', render: (m) => (m.campusId ? campusName(m.campusId) : 'Global') },
     { header: 'Active', render: (m) => (m.active ? 'Yes' : 'No') },
@@ -53,14 +72,14 @@ export default function AdminsPage() {
     },
   ];
 
-  const valid = userId && (role !== 'campus_admin' || campusId);
+  const valid = /^\S+@\S+\.\S+$/.test(email.trim()) && (role !== 'campus_admin' || campusId);
 
   return (
     <>
       <PageHeader
         title="Administrators"
         subtitle="Grant and revoke admin access."
-        actions={<Button onClick={() => setOpen(true)}>+ Grant Admin</Button>}
+        actions={<Button onClick={() => setOpen(true)}>+ Add Admin</Button>}
       />
       <Card className="overflow-hidden">
         <AsyncBoundary query={query} empty="No admin memberships." isEmpty={(d) => d.data.length === 0}>
@@ -69,14 +88,17 @@ export default function AdminsPage() {
       </Card>
 
       <Modal
-        open={open} onClose={() => setOpen(false)} title="Grant Admin Membership"
+        open={open} onClose={() => setOpen(false)} title="Add Admin by Email"
         footer={<>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button loading={grant.isPending} disabled={!valid} onClick={() => grant.mutate()}>Grant</Button>
+          <Button loading={grant.isPending} disabled={!valid} onClick={() => grant.mutate()}>Add Admin</Button>
         </>}
       >
         <div className="space-y-4">
-          <TextField label="User ID (UUID)" value={userId} onChange={(e) => setUserId(e.target.value)} />
+          <TextField
+            label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            hint="Existing accounts get the role straight away. New emails get an invite to set a password."
+          />
           <Select label="Role" value={role} onChange={(e) => setRole(e.target.value as AdminRole)}>
             <option value="campus_admin">Campus Admin</option>
             <option value="finance_admin">Finance Admin</option>

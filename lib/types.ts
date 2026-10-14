@@ -863,6 +863,10 @@ export interface AdminMembership {
   active: boolean;
   grantedAt: string;
   revokedAt: string | null;
+  email?: string | null;
+  displayName?: string | null;
+  /** Set on create: true when a Supabase invite email was sent to a new account. */
+  invited?: boolean;
 }
 
 // ---- Vendor invitations -----------------------------------------------------

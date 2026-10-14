@@ -368,8 +368,13 @@ export const api = {
   // Admin memberships (super_admin only)
   getAdminMemberships: (q?: Query) =>
     request<ListEnvelope<AdminMembership>>(`/admin/admin-memberships${qs(q)}`),
-  createAdminMembership: (body: { userId: string; role: AdminMembership['role']; campusId?: string }) =>
-    post('/admin/admin-memberships', body),
+  // Grant by email (existing account, or a Supabase invite for a new one) or by userId.
+  // The backend spells the read-only role 'readonly_admin'.
+  createAdminMembership: (body: { email?: string; userId?: string; role: AdminMembership['role']; campusId?: string }) =>
+    request<ItemEnvelope<AdminMembership>>('/admin/admin-memberships', {
+      method: 'POST',
+      body: JSON.stringify({ ...body, role: body.role === 'read_only_admin' ? 'readonly_admin' : body.role }),
+    }),
   revokeAdminMembership: (id: string) => post(`/admin/admin-memberships/${id}/revoke`),
   activateAdminMembership: (id: string) => post(`/admin/admin-memberships/${id}/activate`),
 
