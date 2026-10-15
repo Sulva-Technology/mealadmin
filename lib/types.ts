@@ -908,3 +908,37 @@ export interface AuditLog {
   requestId: string | null;
   createdAt: string;
 }
+
+// ---- Live map ---------------------------------------------------------------
+
+/** A rider currently sharing a position (on shift or mid-delivery). GET /admin/map/riders */
+export interface RiderMapEntry {
+  riderId: string;
+  displayName: string;
+  phone: string;
+  campusId: string;
+  available: boolean;
+  fleetPartnerId: string | null;
+  fleetPartnerName: string | null;
+  openAssignmentCount: number;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  headingDegrees: number | null;
+  speedMps: number | null;
+  /** ISO 8601 UTC. */
+  recordedAt: string;
+  /** Last fix older than 5 minutes: the rider may have lost signal. */
+  stale: boolean;
+}
+
+/** A campus location (drop-off) or vendor (pickup) and its map pin. GET /admin/map/campuses/:id/points */
+export interface MapPoint {
+  id: string;
+  kind: 'location' | 'vendor';
+  name: string;
+  zoneId: string | null;
+  active: boolean;
+  latitude: number | null;
+  longitude: number | null;
+}

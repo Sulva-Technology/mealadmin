@@ -22,7 +22,8 @@ export type AdminAction =
   | 'payout.review'
   | 'payout.transfer'
   | 'wallet.adjust'
-  | 'wallet.freeze';
+  | 'wallet.freeze'
+  | 'map.pin';
 
 export type NavItem = {
   name: string;
@@ -56,6 +57,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { name: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard', roles: ALL_ROLES },
       { name: 'Orders', href: '/orders', icon: 'ShoppingCart', roles: ALL_ROLES },
       { name: 'Batches', href: '/batches', icon: 'Boxes', roles: OPS_ROLES },
+      { name: 'Live Map', href: '/map', icon: 'Map', roles: SUPPORT_ROLES },
       { name: 'Inventory', href: '/inventory', icon: 'Package', roles: OPS_ROLES },
       { name: 'Reconciliation', href: '/reconciliation', icon: 'ListChecks', roles: ['super_admin', 'finance_admin', 'operations_admin', 'support_admin'] },
     ],
@@ -130,6 +132,8 @@ const ACTION_ROLES: Record<AdminAction, AdminRole[]> = {
   'payout.transfer': FINANCE_ROLES,
   'wallet.adjust': FINANCE_ROLES,
   'wallet.freeze': FINANCE_ROLES,
+  // Backend: location pins need an admin JWT; vendor pins also need vendors:manage.
+  'map.pin': OPS_ROLES,
 };
 
 export function hasRole(session: AdminSession | undefined, roles?: AdminRole[]): boolean {

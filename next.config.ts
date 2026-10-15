@@ -7,6 +7,7 @@ const isDev = process.env.NODE_ENV !== 'production';
  * - script-src 'unsafe-inline' is required by Next.js hydration inline scripts
  *   (no nonce plumbing yet); 'unsafe-eval' only in dev (webpack eval sourcemaps).
  * - style-src 'unsafe-inline' is required by recharts/motion inline styles.
+ * - img-src allows OpenStreetMap tiles for the Live Map.
  * - connect-src: same-origin (/api/proxy) plus Firebase installations/FCM
  *   registration endpoints used by web push. The browser never talks to
  *   Supabase or the backend API directly.
@@ -16,7 +17,7 @@ const csp = [
   `default-src 'self'`,
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   `style-src 'self' 'unsafe-inline'`,
-  `img-src 'self' data: blob: https://picsum.photos`,
+  `img-src 'self' data: blob: https://picsum.photos https://tile.openstreetmap.org`,
   `font-src 'self' data:`,
   `connect-src 'self' https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://firebase.googleapis.com${isDev ? ' ws:' : ''}`,
   `worker-src 'self'`,
