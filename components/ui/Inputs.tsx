@@ -8,10 +8,11 @@ const base =
   'w-full px-3 py-2 rounded-xl bg-surface dark:bg-ink/50 border border-muted/20 text-sm outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all';
 
 export function SearchInput({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
+  const accessibleName = rest['aria-label'] ?? rest.placeholder ?? 'Search';
   return (
     <div className={cn('relative w-full md:w-72', className)}>
       <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-      <input type="text" className={cn(base, 'pl-9')} {...rest} />
+      <input type="text" aria-label={accessibleName} className={cn(base, 'pl-9')} {...rest} />
     </div>
   );
 }
@@ -54,8 +55,10 @@ export function TextArea({
 
 /** Compact filter <select> for toolbars (no label). */
 export function FilterSelect({ children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
+  const accessibleName = rest['aria-label'] ?? 'Filter';
   return (
     <select
+      aria-label={accessibleName}
       className="px-3 py-2 rounded-xl bg-surface dark:bg-ink/50 border border-muted/20 text-sm outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
       {...rest}
     >

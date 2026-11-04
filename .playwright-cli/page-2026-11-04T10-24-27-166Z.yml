@@ -1,0 +1,15 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - img "Meal Direct" [ref=e5]
+    - heading "Admin Portal" [level=1] [ref=e6]
+    - paragraph [ref=e7]: Sign in to Meal Direct mission control
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]: Email Address
+      - textbox "admin@mealdirect.com" [ref=e15]
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: Password
+        - button "Forgot password?" [ref=e19]
+      - textbox "••••••••" [ref=e24]
+    - button "Sign In" [ref=e25]

@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/hooks';
 import { getUnreadNotificationCount } from '@/lib/notifications';
 import { logout } from '@/lib/logout';
+import { QuickNav } from './QuickNav';
 
 export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { session, isSuperAdmin, campuses, scopeCampusId, setScopeCampusId, campusName } = useSession();
@@ -31,6 +32,15 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   return (
     <header className="h-16 glass-nav shrink-0 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onOpenMenu}
+          className="p-2 -ml-2 rounded-lg text-muted hover:bg-canvas dark:hover:bg-ink/60 md:hidden"
+          aria-label="Open navigation menu"
+          title="Open navigation menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-surface/60 dark:bg-ink/40 border border-white/60 dark:border-white/10 rounded-lg text-sm font-medium">
           <MapPin className="w-4 h-4 text-primary" />
         {isSuperAdmin ? (
@@ -46,6 +56,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
           <span className="font-space">{campusName(session?.campusId)}</span>
         )}
         </div>
+        <QuickNav />
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
@@ -56,11 +67,17 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
           </span>
         )}
 
-        <button onClick={() => setDark((d) => !d)} className="p-2 hover:bg-canvas dark:hover:bg-ink/60 rounded-lg text-muted">
+        <button
+          type="button"
+          onClick={() => setDark((d) => !d)}
+          className="p-2 hover:bg-canvas dark:hover:bg-ink/60 rounded-lg text-muted"
+          aria-label={dark ? 'Use light theme' : 'Use dark theme'}
+          title={dark ? 'Use light theme' : 'Use dark theme'}
+        >
           {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
 
-        <Link href="/notifications" className="relative p-2 hover:bg-canvas dark:hover:bg-ink/60 rounded-lg text-muted">
+        <Link href="/notifications" aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`} className="relative p-2 hover:bg-canvas dark:hover:bg-ink/60 rounded-lg text-muted">
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center">

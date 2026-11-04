@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'motion/react';
-import { Lock, Mail, ArrowRight, AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Lock, Mail, ArrowRight, AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 export function Login() {
   const router = useRouter();
@@ -14,12 +14,19 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const alertRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error) alertRef.current?.focus();
+  }, [error]);
 
   const switchMode = (next: 'login' | 'forgot') => {
     setMode(next);
     setError(null);
     setNotice(null);
     setPassword('');
+    setShowPassword(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,7 +112,10 @@ export function Login() {
 
         {(error || notice) && (
           <div
+            ref={alertRef}
             role="alert"
+            tabIndex={-1}
+            id={error ? 'login-error' : 'login-notice'}
             className={`flex items-start gap-2 text-sm rounded-xl px-3 py-2 mb-5 ${
               error
                 ? 'text-red-600 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40'
@@ -117,21 +127,36 @@ export function Login() {
             ) : (
               <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
             )}
-            <span>{error ?? notice}</span>
+            <span>
+              {error ?? notice}
+              {error && mode === 'login' && (
+                <button
+                  type="button"
+                  onClick={() => switchMode('forgot')}
+                  className="ml-1 font-semibold underline underline-offset-2 hover:text-primary-strong"
+                >
+                  Reset password
+                </button>
+              )}
+            </span>
           </div>
         )}
 
         {mode === 'login' ? (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-ink dark:text-muted mb-1">Email Address</label>
+                <label htmlFor="email" className="block text-sm font-medium text-ink dark:text-muted mb-1">Email Address</label>
               <div className="relative">
                 <Mail className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <input
                   type="email"
+                  id="email"
+                  name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@mealdirect.com"
+                  autoComplete="username"
+                  aria-describedby={error ? 'login-error' : undefined}
                   className="w-full pl-10 pr-4 py-3 bg-canvas border border-muted/20 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 dark:bg-ink dark:border-muted/50/20 focus:border-primary transition-all font-mono text-sm"
                   required
                 />
@@ -140,7 +165,7 @@ export function Login() {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-ink dark:text-muted">Password</label>
+                <label htmlFor="password" className="block text-sm font-medium text-ink dark:text-muted">Password</label>
                 <button
                   type="button"
                   onClick={() => switchMode('forgot')}
@@ -152,13 +177,26 @@ export function Login() {
               <div className="relative">
                 <Lock className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 bg-canvas border border-muted/20 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 dark:bg-ink dark:border-muted/50/20 focus:border-primary transition-all font-mono text-sm"
+                  autoComplete="current-password"
+                  aria-describedby={error ? 'login-error' : undefined}
+                  className="w-full pl-10 pr-11 py-3 bg-canvas border border-muted/20 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 dark:bg-ink dark:border-muted/50/20 focus:border-primary transition-all font-mono text-sm"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 dark:hover:text-white"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
@@ -174,14 +212,18 @@ export function Login() {
         ) : (
           <form onSubmit={handleForgot} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-ink dark:text-muted mb-1">Email Address</label>
+                <label htmlFor="email" className="block text-sm font-medium text-ink dark:text-muted mb-1">Email Address</label>
               <div className="relative">
                 <Mail className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <input
                   type="email"
+                  id="email"
+                  name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@mealdirect.com"
+                  autoComplete="username"
+                  aria-describedby={error || notice ? (error ? 'login-error' : 'login-notice') : undefined}
                   className="w-full pl-10 pr-4 py-3 bg-canvas border border-muted/20 rounded-xl outline-none focus:ring-2 focus:ring-primary/50 dark:bg-ink dark:border-muted/50/20 focus:border-primary transition-all font-mono text-sm"
                   required
                 />

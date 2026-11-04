@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
@@ -17,6 +17,7 @@ export function Modal({
   wide?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
+  const titleId = useId();
 
   // Portal target only exists in the browser; flip on after hydration.
   useEffect(() => {
@@ -24,19 +25,32 @@ export function Modal({
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   const content = (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 backdrop-blur-sm px-4" onMouseDown={onClose}>
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            onMouseDown={(event) => event.stopPropagation()}
             className={`bg-surface dark:bg-ink rounded-3xl p-6 w-full ${wide ? 'max-w-2xl' : 'max-w-md'} shadow-2xl border border-muted/10 max-h-[90vh] overflow-y-auto`}
           >
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-xl font-space font-bold text-ink dark:text-white">{title}</h2>
-              <button onClick={onClose} className="text-muted hover:text-ink dark:hover:text-white">
+              <h2 id={titleId} className="text-xl font-space font-bold text-ink dark:text-white">{title}</h2>
+              <button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-md p-1 text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 dark:hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>

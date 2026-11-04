@@ -1,0 +1,22 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img "Meal Direct" [ref=e5]
+      - heading "Admin Portal" [level=1] [ref=e6]
+      - paragraph [ref=e7]: Sign in to Meal Direct mission control
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: Email Address
+        - textbox "Email Address" [ref=e15]:
+          - /placeholder: admin@mealdirect.com
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: Password
+          - button "Forgot password?" [ref=e19]
+        - generic [ref=e20]:
+          - textbox "Password" [ref=e24]:
+            - /placeholder: ••••••••
+          - button "Hide password" [active] [ref=e42]
+      - button "Sign In" [ref=e29]
+  - button "Open Next.js Dev Tools" [ref=e37] [cursor=pointer]
+  - alert [ref=e41]

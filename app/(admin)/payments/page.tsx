@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Eye, Flag, RefreshCw, Undo2 } from 'lucide-react';
+import { Eye, Flag, RefreshCw, SlidersHorizontal, Undo2, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApiAction, useApiQuery, useDebounced } from '@/lib/hooks';
 import { useSession } from '@/lib/session';
@@ -117,12 +117,28 @@ export default function PaymentsPage() {
   const [maxAmount, setMaxAmount] = useState('');
   const [webhookReceived, setWebhookReceived] = useState('');
   const [requiresReview, setRequiresReview] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [reviewPayment, setReviewPayment] = useState<PaymentListItem | null>(null);
   const [reviewNote, setReviewNote] = useState('');
   const [refundPayment, setRefundPayment] = useState<PaymentListItem | null>(null);
   const [refundReason, setRefundReason] = useState('');
   const [refundDestination, setRefundDestination] = useState<'wallet' | 'paystack'>('wallet');
   const debounced = useDebounced(search);
+  const activeFilterCount = [search, status, refundStatus, vendor, campus, from, to, minAmount, maxAmount, webhookReceived, requiresReview]
+    .filter(Boolean).length;
+  const clearFilters = () => {
+    setSearch('');
+    setStatus('');
+    setRefundStatus('');
+    setVendor('');
+    setCampus('');
+    setFrom('');
+    setTo('');
+    setMinAmount('');
+    setMaxAmount('');
+    setWebhookReceived('');
+    setRequiresReview('');
+  };
 
   const verify = useApiAction((id: string) => api.verifyPayment(id), {
     invalidate: [['payments'], ['payment-queues']],
@@ -238,36 +254,63 @@ export default function PaymentsPage() {
         rowKey={(p) => p.id}
         rowHref={(p) => `/payments/${p.id}`}
         empty="No payments match these filters."
+        emptyAction={<Button size="sm" variant="outline" onClick={clearFilters}>Clear all filters</Button>}
         toolbar={
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
-            <SearchInput className="md:w-full xl:col-span-2" placeholder="Order, payment, Paystack ref, email or phone" value={search} onChange={(e) => setSearch(e.target.value)} />
-            <FilterSelect value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="">All payment statuses</option>
-              {PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{titleize(s)}</option>)}
-            </FilterSelect>
-            <FilterSelect value={refundStatus} onChange={(e) => setRefundStatus(e.target.value)}>
-              <option value="">All refund statuses</option>
-              {REFUND_STATUSES.map((s) => <option key={s} value={s}>{titleize(s)}</option>)}
-            </FilterSelect>
-            <FilterSelect value={webhookReceived} onChange={(e) => setWebhookReceived(e.target.value)}>
-              <option value="">Any webhook status</option>
-              <option value="true">Webhook received</option>
-              <option value="false">Webhook not received</option>
-            </FilterSelect>
-            <FilterSelect value={requiresReview} onChange={(e) => setRequiresReview(e.target.value)}>
-              <option value="">Any review state</option>
-              <option value="true">Requires admin review</option>
-              <option value="false">No review required</option>
-            </FilterSelect>
-            <FilterSelect value={campus} onChange={(e) => setCampus(e.target.value)}>
-              <option value="">Scoped campus</option>
-              {campuses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </FilterSelect>
-            <TextField placeholder="Vendor ID" value={vendor} onChange={(e) => setVendor(e.target.value)} />
-            <TextField type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-            <TextField type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-            <TextField type="number" placeholder="Min amount (NGN)" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} />
-            <TextField type="number" placeholder="Max amount (NGN)" value={maxAmount} onChange={(e) => setMaxAmount(e.target.value)} />
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+              <SearchInput className="md:w-full xl:col-span-2" placeholder="Order, payment, Paystack ref, email or phone" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <FilterSelect aria-label="Payment status" value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="">All payment statuses</option>
+                {PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{titleize(s)}</option>)}
+              </FilterSelect>
+              <FilterSelect aria-label="Refund status" value={refundStatus} onChange={(e) => setRefundStatus(e.target.value)}>
+                <option value="">All refund statuses</option>
+                {REFUND_STATUSES.map((s) => <option key={s} value={s}>{titleize(s)}</option>)}
+              </FilterSelect>
+              <FilterSelect aria-label="Review state" value={requiresReview} onChange={(e) => setRequiresReview(e.target.value)}>
+                <option value="">Any review state</option>
+                <option value="true">Requires admin review</option>
+                <option value="false">No review required</option>
+              </FilterSelect>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowAdvancedFilters((shown) => !shown)}
+                aria-expanded={showAdvancedFilters}
+                aria-controls="payment-advanced-filters"
+              >
+                <SlidersHorizontal className="w-4 h-4" /> {showAdvancedFilters ? 'Hide advanced filters' : 'More filters'}
+              </Button>
+              {activeFilterCount > 0 && (
+                <>
+                  <span className="text-xs font-medium text-muted">{activeFilterCount} active {activeFilterCount === 1 ? 'filter' : 'filters'}</span>
+                  <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>
+                    <X className="w-4 h-4" /> Clear all
+                  </Button>
+                </>
+              )}
+            </div>
+            {showAdvancedFilters && (
+              <div id="payment-advanced-filters" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 rounded-2xl border border-muted/15 bg-canvas/40 p-3">
+                <FilterSelect aria-label="Campus" value={campus} onChange={(e) => setCampus(e.target.value)}>
+                  <option value="">Scoped campus</option>
+                  {campuses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </FilterSelect>
+                <TextField aria-label="Vendor ID" placeholder="Vendor ID" value={vendor} onChange={(e) => setVendor(e.target.value)} />
+                <TextField aria-label="Start date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                <TextField aria-label="End date" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                <FilterSelect aria-label="Webhook status" value={webhookReceived} onChange={(e) => setWebhookReceived(e.target.value)}>
+                  <option value="">Any webhook status</option>
+                  <option value="true">Webhook received</option>
+                  <option value="false">Webhook not received</option>
+                </FilterSelect>
+                <TextField aria-label="Minimum amount in naira" type="number" placeholder="Min amount (NGN)" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} />
+                <TextField aria-label="Maximum amount in naira" type="number" placeholder="Max amount (NGN)" value={maxAmount} onChange={(e) => setMaxAmount(e.target.value)} />
+              </div>
+            )}
           </div>
         }
       />

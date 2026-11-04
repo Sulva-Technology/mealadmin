@@ -54,6 +54,11 @@ export default function OrdersPage() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const debounced = useDebounced(search);
+  const clearFilters = () => {
+    setSearch('');
+    setStatus('');
+    setDate(new Date().toISOString().slice(0, 10));
+  };
 
   const query = useApiQuery(
     ['orders', scopeCampusId, status, date, debounced],
@@ -193,6 +198,7 @@ export default function OrdersPage() {
         <AsyncBoundary
           query={query}
           empty="No orders match these filters."
+          emptyAction={<Button size="sm" variant="outline" onClick={clearFilters}>Clear filters</Button>}
           isEmpty={(d) => d.length === 0}
         >
           {() => (

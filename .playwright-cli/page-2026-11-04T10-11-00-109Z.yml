@@ -1,0 +1,14 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e3]:
+    - generic [ref=f2e4]:
+      - img "Meal Direct" [ref=f2e5]
+      - heading "Reset Password" [level=1] [ref=f2e38]
+      - paragraph [ref=f2e7]: Enter your admin email to receive a reset link.
+    - generic [ref=f2e8]:
+      - generic [ref=f2e9]:
+        - generic [ref=f2e10]: Email Address
+        - textbox "admin@mealdirect.com" [ref=f2e15]
+      - button "Send Reset Link" [ref=f2e39]
+      - button "Back to sign in" [ref=f2e42]
+  - button "Open Next.js Dev Tools" [ref=f2e33] [cursor=pointer]
+  - alert [ref=f2e37]

@@ -14,6 +14,7 @@ import { TextField } from '@/components/ui/Inputs';
 import { ZonesPanel } from '@/components/admin/campus/ZonesPanel';
 import { LocationsPanel } from '@/components/admin/campus/LocationsPanel';
 import { SlotsPanel } from '@/components/admin/campus/SlotsPanel';
+import { CampusLink } from '@/components/admin/campus/CampusLink';
 
 export default function CampusDetailPage() {
   // No single-campus GET endpoint; resolve from the list.
@@ -51,6 +52,7 @@ export default function CampusDetailPage() {
                 </div>
                 <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-8">
                   <Field label="Slug">{campus.slug}</Field>
+                  <Field label="Campus link"><CampusLink slug={campus.slug} /></Field>
                   <Field label="Timezone">{campus.timezone}</Field>
                   <Field label="Currency">{campus.currency}</Field>
                   <Field label="Country">{campus.countryCode}</Field>

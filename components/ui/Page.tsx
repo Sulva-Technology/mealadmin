@@ -59,11 +59,12 @@ export function Field({ label, children }: { label: string; children: ReactNode 
  * optional empty state. Render-prop receives the resolved data.
  */
 export function AsyncBoundary<T>({
-  query, children, empty, isEmpty,
+  query, children, empty, emptyAction, isEmpty,
 }: {
   query: { isLoading: boolean; isError: boolean; error: unknown; data?: T; refetch: () => void };
   children: (data: T) => ReactNode;
   empty?: string;
+  emptyAction?: ReactNode;
   isEmpty?: (data: T) => boolean;
 }) {
   if (query.isLoading) {
@@ -92,7 +93,12 @@ export function AsyncBoundary<T>({
     );
   }
   if (empty && isEmpty?.(query.data)) {
-    return <div className="p-12 text-center text-muted">{empty}</div>;
+    return (
+      <div className="p-12 flex flex-col items-center justify-center text-center gap-3">
+        <p className="text-muted">{empty}</p>
+        {emptyAction}
+      </div>
+    );
   }
   return <>{children(query.data)}</>;
 }

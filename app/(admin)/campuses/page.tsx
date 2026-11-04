@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal';
 import { TextField } from '@/components/ui/Inputs';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { CampusLink } from '@/components/admin/campus/CampusLink';
 
 const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
@@ -20,7 +21,9 @@ const columns: Column<Campus>[] = [
     render: (c) => (
       <div>
         <div className="font-semibold text-ink dark:text-white">{c.name}</div>
-        <div className="text-xs text-muted">{c.slug}</div>
+        <div className="mt-1 max-w-xs">
+          <CampusLink slug={c.slug} compact />
+        </div>
       </div>
     ),
   },

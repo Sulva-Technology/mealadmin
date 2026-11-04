@@ -90,6 +90,12 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Growth',
+    items: [
+      { name: 'Campaign Studio', href: '/campaigns', icon: 'Sparkles', roles: OPS_ROLES },
+    ],
+  },
+  {
     label: 'Configuration',
     items: [
       { name: 'Campuses', href: '/campuses', icon: 'MapPin', roles: ['super_admin', 'operations_admin', 'read_only_admin'] },
