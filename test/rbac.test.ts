@@ -44,4 +44,12 @@ describe('admin RBAC helpers', () => {
     expect(canAccessRoute(session('campus_admin'), '/feature-flags')).toBe(false);
     expect(canAccessRoute(session('operations_admin'), '/feature-flags')).toBe(false);
   });
+
+  it('shows the live map to operations and support, and lets only operations set pins', () => {
+    expect(canAccessRoute(session('campus_admin'), '/map')).toBe(true);
+    expect(canAccessRoute(session('support_admin'), '/map')).toBe(true);
+    expect(canAccessRoute(session('finance_admin'), '/map')).toBe(false);
+    expect(canPerform(session('operations_admin'), 'map.pin')).toBe(true);
+    expect(canPerform(session('support_admin'), 'map.pin')).toBe(false);
+  });
 });

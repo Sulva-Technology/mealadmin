@@ -19,6 +19,7 @@ import type {
   RefundListItem, RefundDetail, SystemHealth, WebhookEvent, WebhookDetail,
   ChatMessage,
   FeatureFlag, FeatureFlagMode, FeatureTester, FeatureTesterSubjectType,
+  RiderMapEntry, MapPoint,
 } from '@/lib/types';
 
 /** Real backend base URL. Used server-side (login + proxy route handlers). */
@@ -274,6 +275,16 @@ export const api = {
   getRiderSettlements: (id: string) =>
     request<ListEnvelope<SettlementListItem>>(`/admin/riders/${id}/settlements`),
   verifyRider: (id: string) => post(`/admin/riders/${id}/verify`),
+
+  // Live map: rider positions and the pins ETAs are computed from.
+  getRiderPositions: (q?: Query) =>
+    request<ListEnvelope<RiderMapEntry>>(`/admin/map/riders${qs(q)}`),
+  getMapPoints: (campusId: string) =>
+    request<ListEnvelope<MapPoint>>(`/admin/map/campuses/${campusId}/points`),
+  setMapPoint: (kind: MapPoint['kind'], id: string, coords: { latitude: number; longitude: number }) =>
+    put(`/admin/map/${kind === 'location' ? 'locations' : 'vendors'}/${id}/coordinates`, coords) as Promise<ItemEnvelope<MapPoint>>,
+  clearMapPoint: (kind: MapPoint['kind'], id: string) =>
+    request<ItemEnvelope<MapPoint>>(`/admin/map/${kind === 'location' ? 'locations' : 'vendors'}/${id}/coordinates`, { method: 'DELETE' }),
   suspendRider: (id: string) => post(`/admin/riders/${id}/suspend`),
   activateRider: (id: string) => post(`/admin/riders/${id}/activate`),
 
@@ -368,8 +379,13 @@ export const api = {
   // Admin memberships (super_admin only)
   getAdminMemberships: (q?: Query) =>
     request<ListEnvelope<AdminMembership>>(`/admin/admin-memberships${qs(q)}`),
-  createAdminMembership: (body: { userId: string; role: AdminMembership['role']; campusId?: string }) =>
-    post('/admin/admin-memberships', body),
+  // Grant by email (existing account, or a Supabase invite for a new one) or by userId.
+  // The backend spells the read-only role 'readonly_admin'.
+  createAdminMembership: (body: { email?: string; userId?: string; role: AdminMembership['role']; campusId?: string }) =>
+    request<ItemEnvelope<AdminMembership>>('/admin/admin-memberships', {
+      method: 'POST',
+      body: JSON.stringify({ ...body, role: body.role === 'read_only_admin' ? 'readonly_admin' : body.role }),
+    }),
   revokeAdminMembership: (id: string) => post(`/admin/admin-memberships/${id}/revoke`),
   activateAdminMembership: (id: string) => post(`/admin/admin-memberships/${id}/activate`),
 

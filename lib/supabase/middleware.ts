@@ -43,11 +43,13 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isLoginRoute = pathname === '/login';
+  // Emailed invite / password-reset links land here before the admin has a session.
+  const isAuthCallback = pathname === '/auth/callback';
   // API routes must return JSON (the proxy enforces its own 401); never redirect them.
   const isApi = pathname.startsWith('/api');
 
   // Unauthenticated user trying to reach a protected page -> /login
-  if (!isAuthed && !isLoginRoute && !isApi) {
+  if (!isAuthed && !isLoginRoute && !isAuthCallback && !isApi) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

@@ -16,6 +16,17 @@ import { useToast } from '@/components/ui/Toast';
 
 type Draft = { headline: string; supporting: string; cta: string; stage: CampaignStage };
 
+function readSavedDraft(storageKey: string, stage: CampaignStage): Draft | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null') as Draft | null;
+    return saved?.stage === stage ? saved : null;
+  } catch {
+    window.localStorage.removeItem(storageKey);
+    return null;
+  }
+}
+
 const CATEGORY_LABELS: Record<FlyerTemplate['category'], string> = {
   launch: 'Launch', order: 'Ordering', offer: 'Community', vendor: 'Vendor', recruit: 'Recruitment', guide: 'Guide', print: 'Print',
 };
@@ -81,7 +92,7 @@ function FlyerPreview({ campus, template, draft, qr, targetRef }: { campus: Camp
             <p className="mt-1 truncate text-[10px] opacity-70">{campaignDestination(campus.slug).replace('https://', '')}</p>
           </div>
           <div className="shrink-0 bg-[#fff7e5] p-1.5 shadow-[4px_4px_0_rgba(9,39,29,.5)]">
-            {qr ? <img src={qr} alt={`Scan to visit Meal Direct at ${campus.name}`} className="h-[66px] w-[66px]" /> : <div className="h-[66px] w-[66px] animate-pulse bg-black/10" />}
+            {qr ? <Image src={qr} alt={`Scan to visit Meal Direct at ${campus.name}`} width={66} height={66} unoptimized className="h-[66px] w-[66px]" /> : <div className="h-[66px] w-[66px] animate-pulse bg-black/10" />}
           </div>
         </div>
       </div>
@@ -96,7 +107,7 @@ export function CampaignStudio() {
   const [templateId, setTemplateId] = useState(FLYER_TEMPLATES[0].id);
   const [category, setCategory] = useState<'all' | FlyerTemplate['category']>('all');
   const [stage, setStage] = useState<CampaignStage>('live');
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [qr, setQr] = useState('');
   const [exporting, setExporting] = useState(false);
   const flyer = useRef<HTMLDivElement>(null);
@@ -104,23 +115,9 @@ export function CampaignStudio() {
   const campus = campuses.data?.data.find((item) => item.id === campusId) ?? campuses.data?.data.find((item) => item.active);
   const template = FLYER_TEMPLATES.find((item) => item.id === templateId) ?? FLYER_TEMPLATES[0];
   const availableTemplates = useMemo(() => category === 'all' ? FLYER_TEMPLATES : FLYER_TEMPLATES.filter((item) => item.category === category), [category]);
-
-  useEffect(() => {
-    if (!campus && campuses.data?.data[0]) setCampusId(campuses.data.data.find((item) => item.active)?.id ?? campuses.data.data[0].id);
-  }, [campus, campuses.data]);
-
-  useEffect(() => {
-    if (!campus) return;
-    const storageKey = `mealdirect:campaign-draft:${campus.id}:${template.id}`;
-    const stored = window.localStorage.getItem(storageKey);
-    if (stored) {
-      try {
-        const saved = JSON.parse(stored) as Draft;
-        if (saved.stage === stage) { setDraft(saved); return; }
-      } catch { window.localStorage.removeItem(storageKey); }
-    }
-    setDraft(buildDraft(template, campus, stage));
-  }, [campus, template, stage]);
+  const draftKey = campus ? `${campus.id}:${template.id}:${stage}` : '';
+  const storageKey = campus ? `mealdirect:campaign-draft:${campus.id}:${template.id}` : '';
+  const draft = campus ? drafts[draftKey] ?? readSavedDraft(storageKey, stage) ?? buildDraft(template, campus, stage) : null;
 
   useEffect(() => {
     if (!campus) return;
@@ -132,8 +129,8 @@ export function CampaignStudio() {
   const updateDraft = (patch: Partial<Draft>) => {
     if (!campus || !draft) return;
     const next = { ...draft, ...patch };
-    setDraft(next);
-    window.localStorage.setItem(`mealdirect:campaign-draft:${campus.id}:${template.id}`, JSON.stringify(next));
+    setDrafts((current) => ({ ...current, [draftKey]: next }));
+    window.localStorage.setItem(storageKey, JSON.stringify(next));
   };
 
   const selectTemplate = (next: FlyerTemplate) => {
@@ -143,8 +140,8 @@ export function CampaignStudio() {
   const reset = () => {
     if (!campus) return;
     const next = buildDraft(template, campus, stage);
-    setDraft(next);
-    window.localStorage.setItem(`mealdirect:campaign-draft:${campus.id}:${template.id}`, JSON.stringify(next));
+    setDrafts((current) => ({ ...current, [draftKey]: next }));
+    window.localStorage.setItem(storageKey, JSON.stringify(next));
   };
 
   const download = async () => {
