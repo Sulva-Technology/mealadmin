@@ -1,0 +1,193 @@
+- main [ref=e3]:
+  - generic [ref=e5]:
+    - heading "Campaign Studio" [level=1] [ref=e6]
+    - paragraph [ref=e7]: Create campus campaigns from the Meal Direct production library.
+  - generic [ref=e8]:
+    - generic [ref=e10]:
+      - generic [ref=e11]: Campus record
+      - combobox "Campus record" [ref=e12] [cursor=pointer]:
+        - option "University of Lagos" [selected]
+        - option "Federal University of Agriculture, Science and Technology (inactive)"
+    - paragraph [ref=e13]: 28 briefs · editable campus names · campaign-specific QR linksA campus record does not confirm that ordering is live.
+  - generic [ref=e14]:
+    - complementary "Campaign library" [ref=e15]:
+      - generic [ref=e16]:
+        - heading "Creative library" [level=2] [ref=e17]
+        - generic [ref=e18]: 28 / 28
+      - textbox "Search campaign templates" [ref=e20]:
+        - /placeholder: Find a campaign…
+      - generic [ref=e21]:
+        - generic [ref=e22]: Campaign category
+        - combobox "Campaign category" [ref=e23] [cursor=pointer]:
+          - option "All campaigns" [selected]
+          - option "Launch & acquisition"
+          - option "Marketplace growth"
+          - option "Education & proof"
+          - option "Campus & print"
+      - generic [ref=e24]:
+        - button "01 Campus Launch" [pressed] [ref=e25]:
+          - generic [ref=e26]: "01"
+          - generic [ref=e27]: Campus Launch
+        - button "02 Coming Soon" [ref=e28]:
+          - generic [ref=e29]: "02"
+          - generic [ref=e30]: Coming Soon
+        - button "03 Order Now" [ref=e31]:
+          - generic [ref=e32]: "03"
+          - generic [ref=e33]: Order Now
+        - button "04 Campus Awareness" [ref=e34]:
+          - generic [ref=e35]: "04"
+          - generic [ref=e36]: Campus Awareness
+        - button "05 First Order" [ref=e37]:
+          - generic [ref=e38]: "05"
+          - generic [ref=e39]: First Order
+        - button "06 Referral" [ref=e40]:
+          - generic [ref=e41]: "06"
+          - generic [ref=e42]: Referral
+        - button "07 Student Value" [ref=e43]:
+          - generic [ref=e44]: "07"
+          - generic [ref=e45]: Student Value
+        - button "08 Cravings" [ref=e46]:
+          - generic [ref=e47]: "08"
+          - generic [ref=e48]: Cravings
+        - button "09 Campus Routine" [ref=e49]:
+          - generic [ref=e50]: "09"
+          - generic [ref=e51]: Campus Routine
+        - button "10 Vendor Recruitment" [ref=e52]:
+          - generic [ref=e53]: "10"
+          - generic [ref=e54]: Vendor Recruitment
+        - button "11 Vendor Spotlight" [ref=e55]:
+          - generic [ref=e56]: "11"
+          - generic [ref=e57]: Vendor Spotlight
+        - button "12 Menu Drop" [ref=e58]:
+          - generic [ref=e59]: "12"
+          - generic [ref=e60]: Menu Drop
+        - button "13 Vendor Benefits" [ref=e61]:
+          - generic [ref=e62]: "13"
+          - generic [ref=e63]: Vendor Benefits
+        - button "14 Campus Ambassador" [ref=e64]:
+          - generic [ref=e65]: "14"
+          - generic [ref=e66]: Campus Ambassador
+        - button "15 Student Representative" [ref=e67]:
+          - generic [ref=e68]: "15"
+          - generic [ref=e69]: Student Representative
+        - button "16 Delivery Partner" [ref=e70]:
+          - generic [ref=e71]: "16"
+          - generic [ref=e72]: Delivery Partner
+        - button "17 How to Order" [ref=e73]:
+          - generic [ref=e74]: "17"
+          - generic [ref=e75]: How to Order
+        - button "18 How It Works" [ref=e76]:
+          - generic [ref=e77]: "18"
+          - generic [ref=e78]: How It Works
+        - button "19 Student Voice" [ref=e79]:
+          - generic [ref=e80]: "19"
+          - generic [ref=e81]: Student Voice
+        - button "20 Weekly Pick" [ref=e82]:
+          - generic [ref=e83]: "20"
+          - generic [ref=e84]: Weekly Pick
+        - button "21 Noticeboard" [ref=e85]:
+          - generic [ref=e86]: "21"
+          - generic [ref=e87]: Noticeboard
+        - button "22 Hostel Poster" [ref=e88]:
+          - generic [ref=e89]: "22"
+          - generic [ref=e90]: Hostel Poster
+        - button "23 Counter QR" [ref=e91]:
+          - generic [ref=e92]: "23"
+          - generic [ref=e93]: Counter QR
+        - button "24 Launch Event" [ref=e94]:
+          - generic [ref=e95]: "24"
+          - generic [ref=e96]: Launch Event
+        - button "25 Food Challenge" [ref=e97]:
+          - generic [ref=e98]: "25"
+          - generic [ref=e99]: Food Challenge
+        - button "26 Campus Partner" [ref=e100]:
+          - generic [ref=e101]: "26"
+          - generic [ref=e102]: Campus Partner
+        - button "27 Pocket Flyer" [ref=e103]:
+          - generic [ref=e104]: "27"
+          - generic [ref=e105]: Pocket Flyer
+        - button "28 Packaging Insert" [ref=e106]:
+          - generic [ref=e107]: "28"
+          - generic [ref=e108]: Packaging Insert
+    - generic [ref=e109]:
+      - region "Campaign preview" [ref=e110]:
+        - generic [ref=e111]:
+          - generic [ref=e112]:
+            - paragraph [ref=e113]: Design 01
+            - heading "Campus Launch" [level=2] [ref=e114]
+          - generic [ref=e116]:
+            - generic [ref=e117]: Output format
+            - combobox "Output format" [ref=e118] [cursor=pointer]:
+              - option "Feed · 4:5" [selected]
+              - option "Story · 9:16"
+              - option "Square · 1:1"
+              - option "A4 poster"
+        - img "Campus Launch, Feed · 4:5" [ref=e121]:
+          - generic [ref=e125]: Meal Direct
+          - generic [ref=e128]: University of Lagos
+          - generic [ref=e130]: CAMPUS LAUNCH
+          - generic [ref=e132]: University of Lagos,we’re live.
+          - generic [ref=e134]: Explore campus meals and choose an available deliveryslot with Meal Direct.
+          - generic [ref=e139]:
+            - generic [ref=e141]: Scan to order
+            - generic [ref=e143]: https://user.mealdirectly.com/unilag
+          - generic [ref=e145]:
+            - generic [ref=e147]: REVIEW PROOF · NOT FOR PUBLICATION
+            - generic [ref=e148]: REVIEW PROOF
+        - generic [ref=e151]:
+          - generic [ref=e152]: 1080 × 1350 px · sRGB
+          - generic [ref=e153]: Review proof · details need confirmation
+        - paragraph [ref=e154]: Announce a confirmed campus launch with a clear campus ordering action.
+      - region "Campaign editor" [ref=e155]:
+        - tablist "Editor sections" [ref=e156]:
+          - tab "Content & assets" [selected] [ref=e157]
+          - tab "Review (5)" [ref=e158]
+        - group [ref=e159]:
+          - tabpanel "Content & assets" [ref=e160]:
+            - generic [ref=e161]:
+              - generic [ref=e162]: University name
+              - textbox "University name Use the approved full name. It is separate from the campus label." [ref=e163]: University of Lagos
+              - generic [ref=e164]: Use the approved full name. It is separate from the campus label.
+            - generic [ref=e165]:
+              - generic [ref=e166]: Campus label (optional)
+              - textbox "Campus label (optional) Leave blank if it repeats the university name." [ref=e167]
+              - generic [ref=e168]: Leave blank if it repeats the university name.
+            - generic [ref=e169]:
+              - generic [ref=e170]: Headline
+              - textbox "Headline" [ref=e171]: "{{UNIVERSITY_NAME}}, we’re live."
+            - generic [ref=e172]:
+              - generic [ref=e173]: Supporting copy
+              - textbox "Supporting copy" [ref=e174]: Explore campus meals and choose an available delivery slot with Meal Direct.
+            - generic [ref=e175]:
+              - generic [ref=e176]: Call to action
+              - textbox "Call to action" [ref=e177]: Scan to order
+            - generic [ref=e178]:
+              - paragraph [ref=e179]: Campaign image (optional)
+              - generic [ref=e180] [cursor=pointer]:
+                - generic [ref=e185]:
+                  - text: Upload PNG, JPEG, or WebP
+                  - generic [ref=e186]: Up to 4 MB · use an approved asset
+                - button "Campaign image" [ref=e187]
+              - paragraph [ref=e188]: The bundled image is representative. Use an approved photograph when naming a real meal, person, or business.
+            - generic [ref=e189]:
+              - generic [ref=e190]:
+                - generic [ref=e191]: Campus destination URL
+                - textbox "Campus destination URL The QR and printed fallback use this same address. Match it to the action." [ref=e192]: https://user.mealdirectly.com/unilag
+                - generic [ref=e193]: The QR and printed fallback use this same address. Match it to the action.
+              - generic [ref=e194]:
+                - button "Copy link" [ref=e195]
+                - link "Open destination" [ref=e199] [cursor=pointer]:
+                  - /url: https://user.mealdirectly.com/unilag
+              - status [ref=e204]: Generating QR code…
+        - generic [ref=e205]:
+          - button "Download proof PNG" [disabled]
+          - button "Editable proof SVG" [disabled]
+          - generic [ref=e206]:
+            - button "Save draft file" [ref=e207]
+            - button "Reset" [ref=e213]
+          - generic [ref=e217] [cursor=pointer]:
+            - text: Load a saved draft file
+            - button "Load a saved draft file" [ref=e218]
+          - status [ref=e219]: Drafts are saved on this device.
+        - group [ref=e221]:
+          - generic "Full production brief" [ref=e222] [cursor=pointer]

@@ -1,81 +1,40 @@
 # Campaign Studio Working Memory
 
-## Problem Summary
+## Completed scope
 
-- Merge the standalone Meal Direct campaign generator into the authenticated admin, while raising its flyer quality to a distinct editorial system. The supplied Sulva document is a visual-principle reference only; Meal Direct retains its own identity.
+Updated the existing authenticated admin Campaign Studio using the supplied November 2026 library of 28 Meal Direct campus campaign briefs. The original source is preserved in `docs/campaign-prompt-library.txt` and loaded on demand from `public/campaign/prompt-library.json`.
 
-## Product Goal
+## Implementation
 
-- An operations or campus admin selects a live campus, edits a campus-specific flyer, sees the exact QR destination, and downloads a high-resolution PNG from one native admin workspace.
+- Searchable library with four categories, separate university/campus names, campaign-specific fields and destinations, optional approved image uploads, and alternate feedback/quote, menu/poll and partnership actions.
+- Source palette, Outfit display type and Inter body type. Responsive SVG layouts for feed, story, square and applicable print formats; duplex pocket flyers and packaging inserts.
+- Real QR generation with a four-module quiet zone. Invalid or changed destinations immediately remove stale QR artwork.
+- Editable SVG and exact-size PNG exports embed local images and font assets. Print canvases include 3 mm bleed; printer color conversion and PDF/X-4 finishing remain outside the studio.
+- Incomplete facts and unchecked approvals retain a review-proof watermark. Text overflow blocks export. Content and format edits, imports, and reopening require fresh review.
+- Version 2 drafts are saved immediately in browser local storage, isolated by campus/template, with JSON backup/import and storage-error feedback. Previous-version drafts are not reused.
+- Existing authenticated campus reads and route protection are retained. No campaign mutation endpoint or deployment was added.
 
-## Stack and Runtime
+## Files
 
-- Next.js 15 App Router, React 19, TypeScript, and Tailwind utilities.
-- Existing authenticated browser-to-backend proxy provides campus data.
-- Drafts are browser-local until the backend exposes an authenticated campaign-storage API.
-- `qrcode` and `html-to-image` generate QR imagery and exports.
+- `components/admin/campaign/CampaignStudio.tsx`: library, editing, review and persistence flow.
+- `components/admin/campaign/CampaignPoster.tsx`: SVG composition and text fitting.
+- `lib/campaign-studio.ts`: 28 templates, variants, formats, copy and validation.
+- `lib/campaign-drafts.ts`: versioned local storage validation.
+- `lib/campaign-export.ts`: layout preflight and embedded SVG/PNG exports.
+- `app/(admin)/campaigns/page.tsx`: Outfit font scope.
+- `test/campaign-*.test.*`: 16 focused tests.
 
-## Confirmed Facts
+## Verification — 10 November 2026
 
-- `C:\sulvatech\campaign` is a standalone non-git Next app with 28 flyer concepts, Meal Direct branding, local JSON persistence, QR generation, and export utilities.
-- Admin already reads campuses from `GET /admin/campuses`; each campus has a public destination based on its slug.
-- Meal Direct public campus links use `https://user.mealdirectly.com/{slug}`.
-- The current admin client has no campaign CRUD endpoint.
-- TypeScript and ESLint passed after the first integration. An unauthenticated visit to `/campaigns` correctly redirects to `/login`.
+- TypeScript and targeted ESLint passed.
+- All 16 campaign tests passed, covering draft isolation, malformed/legacy data, quota errors, URLs, required facts, stale QR responses, edit/review state and alternate-campaign reset.
+- A temporary browser fixture exercised the real studio with two mocked campus records. All 112 default template/format combinations passed text and canvas bounds checks.
+- Long names, filled event and quote fields, three-step content, counter vendor name, reverse sides and an A7 support contact passed layout checks. A 390 px viewport had no horizontal overflow.
+- PNG and editable SVG downloads were verified; the exported 1080 x 1350 PNG QR decoded to the selected campus URL. Assets and fonts were embedded in the SVG.
+- Screenshots remain under `output/playwright/campaign-*.png`. The temporary fixture server and browser were stopped. Automatic approval review blocked deletion of `output/playwright/campaign-harness`; that folder and its temporary dependencies remain. Generated browser logs and export copies also remain in `.playwright-cli`.
 
-## Unknowns / Needs Confirmation
+## Remaining limits
 
-- Exact server-side campaign draft, asset, export-history, and authorization contract.
-- No offer, testimonial, event, vendor, or recruitment detail should be invented in flyer copy.
-
-## Active Files / Surfaces
-
-- `app/(admin)/campaigns/page.tsx`
-- `components/admin/campaign/CampaignStudio.tsx`
-- `lib/campaign-studio.ts`
-- `lib/rbac.ts`, `components/admin/Sidebar.tsx`
-- `public/campaign/*`
-
-## Decisions
-
-- Use Meal Direct branding only: deep green, warm cream, fresh green, and existing logo.
-- Adapt reference principles—oversized type, engineered asymmetry, real imagery, restraint, and varied compositions—without copying its identity or layouts.
-- Keep 28 distinct campaign starting points rather than a repeated card template.
-- Make Campaign Studio available to super, operations, and campus admins; do not invent backend mutation calls.
-
-## API Contracts
-
-- `GET /admin/campuses?limit=100` returns the selected `Campus` through the existing authenticated proxy.
-- No campaign CRUD contract is used or assumed.
-
-## Data Model
-
-- A flyer draft is `{ headline, supporting, cta, stage }` at `mealdirect:campaign-draft:{campusId}:{templateId}` in local storage.
-- The campus slug determines the QR/destination URL.
-
-## Auth and Security
-
-- Existing middleware gates `/campaigns` before it renders.
-- Navigation visibility is role-scoped to super, operations, and campus admins. The backend remains authoritative for campus reads.
-
-## UI System Notes
-
-- Three-part working surface: format library, live portrait flyer, and focused copy/export inspector.
-- QR always points to the selected campus’s public link. Neutral starting copy avoids fabricated promotions.
-- The 28 formats vary image treatment and composition while sharing Meal Direct identity.
-
-## Bugs Fixed
-
-- Replaced the separate local dashboard with a native campus-linked admin studio.
-- Stage switching regenerates defaults unless there is a matching-stage saved draft, preventing stale launch copy from being silently reused.
-
-## Risks / Watchouts
-
-- Local drafts are device-specific; a backend campaign-draft API is required for team-wide persistence and audit history.
-- Browser PNG export depends on canvas support; imagery is bundled as same-origin assets to avoid canvas-tainting errors.
-
-## Next Actions
-
-- Run final typecheck/lint after the latest adjustment.
-- Perform visual/export QA with a valid admin session and a real campus.
-- Add backend persistence once the endpoint contract is available.
+- No authenticated live-campus session was available; the browser checks used fixture campus data. Existing unauthenticated route redirect was verified earlier.
+- Production build, physical phone scanning, printer proofing and color-profile conversion were not performed.
+- Drafts are local to the device. Shared storage and audit history require a supported backend contract.

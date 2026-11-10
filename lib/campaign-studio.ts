@@ -1,83 +1,125 @@
-export type CampaignStage = 'coming_soon' | 'launching' | 'live' | 'growth';
-
+export type CampaignCategory = 'launch' | 'marketplace' | 'education' | 'activation';
+export type CampaignFormat = 'feed' | 'story' | 'square' | 'a3' | 'a4' | 'a6' | 'a7';
+export type CampaignField = { key: string; label: string; type: 'text' | 'textarea' | 'url' | 'image'; required: boolean; hint?: string };
 export type FlyerTemplate = {
-  id: string;
-  number: number;
-  name: string;
-  category: 'launch' | 'order' | 'offer' | 'vendor' | 'recruit' | 'guide' | 'print';
-  eyebrow: string;
-  headline: (campusName: string, abbreviation: string, stage: CampaignStage) => string;
-  supporting: (campusName: string, abbreviation: string, stage: CampaignStage) => string;
-  cta: string;
-  image: string;
-  family: number;
+  id: string; number: number; name: string; category: CampaignCategory; description: string;
+  eyebrow: string; headline: string; supporting: string; cta: string; image: string;
+  fields: CampaignField[]; checks: string[]; destinationKey: string;
+  formats: CampaignFormat[]; defaultFormat: CampaignFormat; duplex?: boolean;
 };
-
-const stageHeadline = (abbreviation: string, stage: CampaignStage) => {
-  if (stage === 'coming_soon') return `${abbreviation}, GET READY.`;
-  if (stage === 'launching') return `${abbreviation}, WE'RE LIVE TODAY.`;
-  if (stage === 'live') return `${abbreviation}, YOUR NEXT MEAL IS HERE.`;
-  return `GOOD FOOD MOVES FAST AT ${abbreviation}.`;
+export type CampaignDraft = {
+  version: 2; universityName: string; campusName: string; destination: string;
+  headline: string; supporting: string; cta: string;
+  values: Record<string, string>; checks: Record<string, boolean>;
 };
-
-const stageSupport = (campusName: string, stage: CampaignStage) => {
-  if (stage === 'coming_soon') return `A better way to discover food is arriving at ${campusName}.`;
-  if (stage === 'launching') return `Open Meal Direct, choose a vendor, and get food moving across campus.`;
-  if (stage === 'live') return `Discover vendors serving ${campusName} today.`;
-  return `Good food, direct from campus vendors to your day.`;
+export const CATEGORY_LABELS: Record<CampaignCategory, string> = {
+  launch: 'Launch & acquisition', marketplace: 'Marketplace growth', education: 'Education & proof', activation: 'Campus & print',
 };
-
-const definition = (
-  number: number,
-  name: string,
-  category: FlyerTemplate['category'],
-  eyebrow: string,
-  headline: FlyerTemplate['headline'],
-  supporting: FlyerTemplate['supporting'],
-  cta: string,
-  image: string,
-  family: number,
-): FlyerTemplate => ({ number, id: `${String(number).padStart(2, '0')}_${name.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`, name, category, eyebrow, headline, supporting, cta, image, family });
-
-/**
- * The studio intentionally keeps a broad campaign pack rather than one repeated
- * layout. A campus team can use the formats as a launch sequence, then pull a
- * focused creative as needed without inventing unverified offers or claims.
- */
-export const FLYER_TEMPLATES: FlyerTemplate[] = [
-  definition(1, 'Campus launch', 'launch', 'OFFICIAL CAMPUS DROP', (name, abbr, stage) => stageHeadline(abbr, stage), (name, _abbr, stage) => stageSupport(name, stage), 'SCAN TO EXPLORE', '/campaign/jollof.jpg', 1),
-  definition(2, 'Coming soon', 'launch', 'SAVE THE DATE', (_name, abbr) => `${abbr}, SOMETHING GOOD IS COMING.`, (name) => `Meal Direct is preparing to land at ${name}.`, 'STAY IN THE LOOP', '/campaign/suya.jpg', 2),
-  definition(3, 'Order now', 'order', 'MEAL DIRECT / ON CAMPUS', (_name, abbr) => `ORDER SMARTER, ${abbr}.`, (name) => `Your next meal from ${name} vendors is a few taps away.`, 'ORDER NOW', '/campaign/jollof.jpg', 3),
-  definition(4, 'Campus awareness', 'launch', 'THE CAMPUS FOOD COMPANION', () => 'GOOD FOOD. RIGHT WHERE YOU ARE.', (name) => `Meet the easier way to discover meals around ${name}.`, 'FIND YOUR MEAL', '/campaign/lifestyle.jpg', 4),
-  definition(5, 'First order', 'offer', 'FIRST ORDER', () => 'START WITH SOMETHING DELICIOUS.', (name) => `Explore Meal Direct at ${name}. Add a verified offer only when one is live.`, 'START EXPLORING', '/campaign/egusi.jpg', 5),
-  definition(6, 'Referral', 'offer', 'PASS IT ON', (_name, abbr) => `GOOD FOOD IS BETTER SHARED, ${abbr}.`, (name) => `Send your campus food link to a friend at ${name}.`, 'SHARE THE LINK', '/campaign/lifestyle.jpg', 6),
-  definition(7, 'Student value', 'offer', 'THE STUDENT FOOD EDIT', () => 'YOUR CAMPUS. YOUR BUDGET. YOUR CHOICE.', (name) => `Browse the meals available around ${name} before the next lecture.`, 'BROWSE MEALS', '/campaign/jollof.jpg', 7),
-  definition(8, 'Cravings', 'order', 'CRAVING CLUB', () => 'WHAT ARE YOU EATING TODAY?', (name) => `Discover flavours from vendors serving ${name}.`, 'EXPLORE VENDORS', '/campaign/egusi.jpg', 8),
-  definition(9, 'Campus routine', 'order', 'LECTURES / STUDY / LATE NIGHT', () => 'KEEP THE DAY MOVING.', (name) => `From busy days to late sessions, Meal Direct is built for ${name}.`, 'ORDER ON CAMPUS', '/campaign/suya.jpg', 9),
-  definition(10, 'Vendor recruitment', 'vendor', 'FOR FOOD BUSINESSES', () => 'YOUR FOOD DESERVES MORE STUDENTS.', (name) => `Bring your menu to the people looking for it at ${name}.`, 'PARTNER WITH US', '/campaign/suya.jpg', 10),
-  definition(11, 'Vendor spotlight', 'vendor', 'THE PEOPLE WHO FEED CAMPUS', () => 'FRESHLY MADE. CAMPUS READY.', (name) => `Highlight a verified vendor serving ${name}.`, 'MEET THE VENDOR', '/campaign/lifestyle.jpg', 11),
-  definition(12, 'Menu drop', 'vendor', "TODAY'S MENU", () => 'THE PLATE LIST.', (name) => `Show today’s real selections from a ${name} vendor.`, 'VIEW THE MENU', '/campaign/egusi.jpg', 12),
-  definition(13, 'Vendor benefits', 'vendor', 'MORE REACH. LESS FRICTION.', () => 'LET MORE STUDENTS FIND YOUR FOOD.', (name) => `Digital ordering and campus visibility for vendors at ${name}.`, 'BECOME A PARTNER', '/campaign/suya.jpg', 13),
-  definition(14, 'Campus ambassador', 'recruit', 'CAMPUS LEADERS WANTED', (_name, abbr) => `BE THE FOOD PLUG AT ${abbr}.`, (name) => `Help introduce a better food experience at ${name}.`, 'APPLY TO REPRESENT', '/campaign/lifestyle.jpg', 14),
-  definition(15, 'Student representative', 'recruit', 'COMMUNITY PARTNER', () => 'TURN YOUR CAMPUS NETWORK INTO IMPACT.', (name) => `Build campus energy for Meal Direct at ${name}.`, 'JOIN THE TEAM', '/campaign/lifestyle.jpg', 15),
-  definition(16, 'Delivery partner', 'recruit', 'KEEP CAMPUS MOVING', () => 'HELP DELIVER GOOD FOOD.', (name) => `Recruit delivery partners for verified orders at ${name}.`, 'JOIN DELIVERY', '/campaign/campus_student_food_lifestyle_1792934452674.jpg', 16),
-  definition(17, 'How to order', 'guide', 'FOUR EASY MOVES', () => 'SCAN. CHOOSE. ORDER. EAT.', (name) => `A clear first-order guide for students at ${name}.`, 'START YOUR ORDER', '/campaign/jollof.jpg', 17),
-  definition(18, 'How it works', 'guide', 'THE SIMPLE VERSION', () => 'PICK A MEAL. WE HANDLE THE REST.', (name) => `Explain the real ordering and delivery flow for ${name}.`, 'SEE HOW IT WORKS', '/campaign/egusi.jpg', 18),
-  definition(19, 'Student voice', 'offer', 'CAMPUS VOICES', () => 'REAL STUDENTS. REAL MEALS.', (name) => `Add a genuine student quote from ${name}; never manufacture testimonials.`, 'EXPLORE MEAL DIRECT', '/campaign/lifestyle.jpg', 19),
-  definition(20, 'Weekly pick', 'order', 'THIS WEEK ON CAMPUS', () => 'MAKE TODAY’S MEAL COUNT.', (name) => `Feature a real available meal or vendor at ${name}.`, 'SEE WHAT’S AVAILABLE', '/campaign/jollof.jpg', 20),
-  definition(21, 'Noticeboard', 'print', 'CAMPUS NOTICE', () => 'A BETTER LUNCH BREAK STARTS HERE.', (name) => `Print-ready noticeboard creative for ${name}.`, 'SCAN TO ORDER', '/campaign/suya.jpg', 21),
-  definition(22, 'Hostel poster', 'print', 'ROOM TO PLATE', () => 'YOUR HOSTEL. YOUR MEAL.', (name) => `Place this at approved ${name} hostel locations.`, 'SCAN TO EXPLORE', '/campaign/egusi.jpg', 22),
-  definition(23, 'Counter QR', 'print', 'ONE SCAN. NO QUEUE.', () => 'FOOD MOVES FASTER WITH MEAL DIRECT.', (name) => `A compact QR flyer for participating ${name} vendors.`, 'SCAN TO ORDER', '/campaign/jollof.jpg', 23),
-  definition(24, 'Launch event', 'launch', 'CAMPUS, YOU ARE INVITED', () => 'THE MEAL DIRECT LAUNCH DAY.', (name) => `Add confirmed launch-event details for ${name}.`, 'GET READY', '/campaign/lifestyle.jpg', 24),
-  definition(25, 'Food challenge', 'offer', 'CAMPUS FOOD FIGHT', () => 'TEAM JOLLOF OR TEAM SWALLOW?', (name) => `A conversation starter for the ${name} community.`, 'PICK YOUR SIDE', '/campaign/jollof.jpg', 25),
-  definition(26, 'Campus partner', 'vendor', 'BETTER TOGETHER', () => 'MEAL DIRECT × CAMPUS COMMUNITY.', (name) => `Introduce a verified partner collaboration at ${name}.`, 'DISCOVER MORE', '/campaign/lifestyle.jpg', 26),
-  definition(27, 'Pocket flyer', 'print', 'CAMPUS FOOD, UNLOCKED', () => 'YOUR NEXT MEAL IS A SCAN AWAY.', (name) => `A compact handout for ${name} activations.`, 'SCAN TO START', '/campaign/jollof.jpg', 27),
-  definition(28, 'Packaging insert', 'print', 'PACKED WITH CARE', () => 'THERE IS MORE TO DISCOVER.', (name) => `An insert for Meal Direct orders around ${name}.`, 'DISCOVER YOUR NEXT MEAL', '/campaign/egusi.jpg', 28),
+export const CAMPAIGN_PALETTE = { green: '#0B6B4F', deepGreen: '#074C39', mint: '#BDE8D6', paleGreen: '#ECF7F2', ink: '#0F172A', slate: '#475569', white: '#FFFFFF' };
+type FormatSpec = { label: string; width: number; height: number; widthMm?: number; heightMm?: number; bleedMm?: number; safePx: number };
+const print = (label: string, widthMm: number, heightMm: number, safetyMm: number): FormatSpec => ({ label, widthMm, heightMm, bleedMm: 3, width: Math.round((widthMm + 6) * 300 / 25.4), height: Math.round((heightMm + 6) * 300 / 25.4), safePx: (safetyMm + 3) * 300 / 25.4 });
+export const CAMPAIGN_FORMATS: Record<CampaignFormat, FormatSpec> = {
+  feed: { label: 'Feed · 4:5', width: 1080, height: 1350, safePx: 64 },
+  story: { label: 'Story · 9:16', width: 1080, height: 1920, safePx: 64 },
+  square: { label: 'Square · 1:1', width: 1080, height: 1080, safePx: 64 },
+  a3: print('A3 poster', 297, 420, 12), a4: print('A4 poster', 210, 297, 12),
+  a6: print('A6 card', 105, 148, 6), a7: print('A7 insert', 74, 105, 5),
+};
+const field = (key: string, label: string, required = true, type: CampaignField['type'] = 'text', hint?: string): CampaignField => ({ key, label, required, type, hint });
+const photo = (key: string, label = 'Approved photograph', required = true) => field(key, label, required, 'image');
+const paragraph = (key: string, label: string, required = true) => field(key, label, required, 'textarea', 'Keep the approved wording concise enough to read on the selected format.');
+const route = (key: string, label: string) => field(key, label, true, 'url');
+const COMMON_CHECKS = [
+  'The university, campus, copy and all supplied facts are approved for this campaign.',
+  'I have permission to use every photograph and logo shown.',
+  'I opened the destination and confirmed that it matches the stated action.',
+  'I tested an exported proof QR on two devices at the intended size, and checked readability and layout.',
+];
+type Definition = Omit<FlyerTemplate, 'id' | 'number' | 'category' | 'checks' | 'formats' | 'defaultFormat'> & { checks?: string[]; formats?: CampaignFormat[]; defaultFormat?: CampaignFormat };
+const definitions: Definition[] = [
+  { name: 'Campus Launch', description: 'Announce a confirmed campus launch with a clear campus ordering action.', eyebrow: 'CAMPUS LAUNCH', headline: '{{UNIVERSITY_NAME}},\nwe’re live.', supporting: 'Explore campus meals and choose an available delivery slot with Meal Direct.', cta: 'Scan to order', image: '/campaign/jollof.jpg', destinationKey: 'CAMPUS_URL', fields: [], checks: ['Ordering, participating availability and delivery slots are confirmed live for this campus.'] },
+  { name: 'Coming Soon', description: 'Introduce a planned arrival without implying that ordering is live.', eyebrow: 'COMING SOON', headline: 'Something tasty\nis coming.', supporting: 'Meal Direct is coming to {{UNIVERSITY_NAME}}.', cta: 'Explore your campus page', image: '/campaign/jollof.jpg', destinationKey: 'CAMPUS_URL', fields: [field('APPROVED_LAUNCH_DATE', 'Launch date', false)], checks: ['A campus arrival is planned, and the destination accurately explains the current status.'] },
+  { name: 'Order Now', description: 'Invite students to explore current meals and available delivery slots.', eyebrow: 'CAMPUS MEALS', headline: 'Choose your\nnext meal.', supporting: 'Explore available meals and choose a delivery slot that works for you.', cta: 'Scan to order', image: '/campaign/jollof.jpg', destinationKey: 'CAMPUS_URL', fields: [], checks: ['The campus ordering flow and delivery-slot selection are live.'] },
+  { name: 'Campus Awareness', description: 'Introduce Meal Direct and explain scheduled ordering in three steps.', eyebrow: 'MEALS FOR CAMPUS LIFE', headline: 'Meet Meal Direct.', supporting: 'Discover campus food options and order for an available delivery slot.', cta: 'Explore your campus page', image: '/campaign/jollof.jpg', destinationKey: 'CAMPUS_URL', fields: [], checks: ['Campus service status and the Explore / Choose / Complete ordering sequence are confirmed.'] },
+  { name: 'First Order', description: 'Help students start an order without inventing a first-order offer.', eyebrow: 'FIRST TIME HERE?', headline: 'Your first order\nstarts here.', supporting: 'Browse campus meals, choose an available delivery slot, and follow checkout to place your order.', cta: 'Explore your first order', image: '/campaign/egusi.jpg', destinationKey: 'CAMPUS_URL', fields: [], checks: ['The destination accepts orders and these checkout instructions match the live campus flow.'] },
+  { name: 'Referral', description: 'Encourage ordinary campus-link sharing without promising rewards.', eyebrow: 'PASS IT ON', headline: 'Good food links\nare worth sharing.', supporting: 'Share your Meal Direct campus link with a friend at {{UNIVERSITY_NAME}}.', cta: 'Scan. Open. Share.', image: '/campaign/lifestyle.jpg', destinationKey: 'CAMPUS_URL', fields: [] },
+  { name: 'Student Value', description: 'Encourage meal planning with an optional verified value fact.', eyebrow: 'PLAN YOUR DAY', headline: 'Plan your meals.\nKeep campus moving.', supporting: 'Explore available campus meals and choose a delivery slot that works with your day.', cta: 'Scan to explore meals', image: '/campaign/jollof.jpg', destinationKey: 'CAMPUS_URL', fields: [field('APPROVED_VALUE_FACT', 'Verified value fact', false)] },
+  { name: 'Cravings', description: 'Invite discovery using only categories currently available on campus.', eyebrow: 'CAMPUS CRAVINGS', headline: 'What are you\ncraving today?', supporting: 'Browse what’s available around {{CAMPUS_NAME}}.', cta: 'Scan to discover meals', image: '/campaign/egusi.jpg', destinationKey: 'CAMPUS_URL', fields: [field('APPROVED_CATEGORIES', 'Up to three available categories', false)], checks: ['Any category or named meal shown is currently available at this campus.'] },
+  { name: 'Campus Routine', description: 'Connect meal planning to student routines without promising late-night delivery.', eyebrow: 'LECTURES · STUDY · EVENING', headline: 'Your day is full.\nPlan the meal.', supporting: 'Check available meals and delivery slots for {{CAMPUS_NAME}}.', cta: 'Scan to plan your order', image: '/campaign/lifestyle.jpg', destinationKey: 'CAMPUS_URL', fields: [field('APPROVED_DELIVERY_WINDOWS', 'Verified delivery windows', false)] },
+  { name: 'Vendor Recruitment', description: 'Invite food businesses to a verified vendor application route.', eyebrow: 'FOR CAMPUS FOOD BUSINESSES', headline: 'Serve your campus.', supporting: 'Explore becoming a Meal Direct vendor.', cta: 'Apply to become a vendor', image: '', destinationKey: 'VENDOR_APPLICATION_URL', fields: [route('VENDOR_APPLICATION_URL', 'Vendor application URL'), paragraph('APPROVED_VENDOR_ELIGIBILITY', 'Vendor eligibility'), photo('APPROVED_VENDOR_PHOTO')], checks: ['Vendor recruitment is open and this destination accepts vendor applications.'] },
+  { name: 'Vendor Spotlight', description: 'Feature a real participating vendor with their approved image and meal details.', eyebrow: 'VENDOR SPOTLIGHT', headline: '{{VENDOR_NAME}}', supporting: 'Meet a food vendor on Meal Direct.', cta: 'Explore this vendor', image: '', destinationKey: 'VENDOR_DESTINATION_URL', fields: [field('VENDOR_NAME', 'Vendor name'), field('VERIFIED_VENDOR_DESCRIPTOR', 'Vendor description', false), field('FEATURED_MEAL_NAME', 'Featured meal'), photo('APPROVED_VENDOR_OR_MEAL_PHOTO'), field('APPROVED_AVAILABILITY_LINE', 'Current availability', false), route('VENDOR_DESTINATION_URL', 'Vendor destination URL')], checks: ['The vendor participates at this campus and the photograph shows the named vendor or meal.'] },
+  { name: 'Menu Drop', description: 'Publish supplied menu items, prices and availability without invented rows.', eyebrow: 'MENU DROP', headline: '{{VENDOR_NAME}}', supporting: '', cta: 'View menu and order', image: '', destinationKey: 'MENU_DESTINATION_URL', fields: [field('VENDOR_NAME', 'Vendor name'), paragraph('MENU_ITEMS_WITH_VERIFIED_PRICES', 'Menu items and verified prices'), field('APPROVED_MENU_DATE_OR_PERIOD', 'Availability date or period', false), field('APPROVED_ORDER_WINDOW', 'Order window', false), field('APPROVED_DELIVERY_WINDOW', 'Delivery window', false), photo('APPROVED_MENU_PHOTO'), route('MENU_DESTINATION_URL', 'Menu destination URL')], checks: ['Each item, description, price, currency and availability period matches the current vendor menu.'] },
+  { name: 'Vendor Benefits', description: 'Explain approved vendor benefits and the actual scheduling workflow.', eyebrow: 'VENDOR PARTNERSHIP', headline: 'See how Meal Direct\nfits your business.', supporting: '', cta: 'Explore vendor partnership', image: '', destinationKey: 'VENDOR_INFORMATION_URL', fields: [paragraph('APPROVED_VENDOR_BENEFITS', 'Approved benefits'), paragraph('APPROVED_SCHEDULING_DESCRIPTION', 'Scheduling description'), paragraph('APPROVED_VENDOR_WORKFLOW', 'Vendor workflow'), route('VENDOR_INFORMATION_URL', 'Vendor information URL')], checks: ['Every benefit and workflow statement is supported by the current vendor terms.'] },
+  { name: 'Campus Ambassador', description: 'Recruit ambassadors using the approved role description and application.', eyebrow: 'CAMPUS AMBASSADORS', headline: 'Be a campus\nambassador.', supporting: 'Help introduce Meal Direct on your campus.', cta: 'Apply for the ambassador role', image: '', destinationKey: 'AMBASSADOR_APPLICATION_URL', fields: [paragraph('APPROVED_AMBASSADOR_ROLE_SUMMARY', 'Role summary'), paragraph('APPROVED_AMBASSADOR_RESPONSIBILITIES', 'Responsibilities'), field('APPROVED_ELIGIBILITY', 'Who can apply', false), field('APPROVED_APPLICATION_DEADLINE', 'Apply by', false), photo('APPROVED_STUDENT_PHOTO'), route('AMBASSADOR_APPLICATION_URL', 'Ambassador application URL')], checks: ['Ambassador recruitment is open and the destination presents the approved role terms and obligations.'] },
+  { name: 'Student Representative', description: 'Explain the student representative role without adding unsupported benefits.', eyebrow: 'STUDENT REPRESENTATIVES', headline: 'Help your campus\nfind Meal Direct.', supporting: '{{APPROVED_REPRESENTATIVE_ROLE_SUMMARY}}', cta: 'Apply as a student representative', image: '', destinationKey: 'REPRESENTATIVE_APPLICATION_URL', fields: [paragraph('APPROVED_REPRESENTATIVE_ROLE_SUMMARY', 'Role summary'), paragraph('APPROVED_REPRESENTATIVE_RESPONSIBILITIES', 'Responsibilities'), field('APPROVED_ELIGIBILITY', 'Who can apply', false), field('APPROVED_APPLICATION_DEADLINE', 'Apply by', false), route('REPRESENTATIVE_APPLICATION_URL', 'Representative application URL')], checks: ['Representative recruitment is open and the approved terms and obligations are stated at the destination.'] },
+  { name: 'Delivery Partner', description: 'Recruit for a real delivery role with accurate transport and safety requirements.', eyebrow: 'DELIVERY PARTNERS', headline: 'Help deliver meals\nacross campus.', supporting: '{{APPROVED_DELIVERY_ROLE_TITLE}}', cta: 'Apply to be a delivery partner', image: '', destinationKey: 'DELIVERY_PARTNER_APPLICATION_URL', fields: [field('APPROVED_DELIVERY_ROLE_TITLE', 'Role title'), field('APPROVED_TRANSPORT_TYPES', 'Approved transport'), paragraph('APPROVED_DELIVERY_RESPONSIBILITIES', 'Responsibilities'), paragraph('APPROVED_ELIGIBILITY_AND_SAFETY_REQUIREMENTS', 'Eligibility and safety'), photo('APPROVED_DELIVERY_PHOTO'), route('DELIVERY_PARTNER_APPLICATION_URL', 'Delivery application URL')], checks: ['Recruitment is open; transport, safety requirements and role terms match the approved role at this campus.'] },
+  { name: 'How to Order', description: 'Explain the verified campus order process, including checkout and delivery windows.', eyebrow: 'START WITH YOUR CAMPUS LINK', headline: 'Your next meal,\nstep by step.', supporting: '', cta: 'Scan to explore meals', image: '', destinationKey: 'CAMPUS_URL', fields: [paragraph('APPROVED_CHECKOUT_DETAILS', 'Order: checkout details'), paragraph('APPROVED_DELIVERY_WINDOW_DESCRIPTION', 'Eat: delivery-window details')], checks: ['I walked through the live ordering flow and verified its meal, slot, location and payment requirements.'] },
+  { name: 'How It Works', description: 'Answer payment, timing and fulfillment questions using approved campus facts.', eyebrow: 'PAYMENT · TIMING · DELIVERY', headline: 'Know how\nyour order works.', supporting: '', cta: 'Explore your campus menu', image: '', destinationKey: 'CAMPUS_URL', fields: [paragraph('APPROVED_PAYMENT_DESCRIPTION', 'Payment'), paragraph('APPROVED_DELIVERY_WINDOW_DESCRIPTION', 'Timing'), paragraph('APPROVED_FULFILLMENT_DESCRIPTION', 'Delivery'), field('APPROVED_ORDER_CUTOFF_DESCRIPTION', 'Order cutoff', false), field('APPROVED_SUPPORT_ROUTE', 'Need help?', false)] },
+  { name: 'Student Voice', description: 'Invite genuine student feedback through a verified response destination.', eyebrow: 'STUDENT VOICE', headline: 'Tried Meal Direct?\nTell us what you think.', supporting: 'Your feedback helps us understand your experience.', cta: 'Share your feedback', image: '', destinationKey: 'FEEDBACK_DESTINATION_URL', fields: [route('FEEDBACK_DESTINATION_URL', 'Feedback destination URL')], checks: ['This question is approved and the destination genuinely accepts student feedback.'] },
+  { name: 'Weekly Pick', description: 'Feature a real meal and vendor available during the stated week.', eyebrow: 'WEEKLY PICK', headline: 'This week’s pick.', supporting: '{{MEAL_NAME}}\nFrom {{VENDOR_NAME}}', cta: 'Scan to explore', image: '', destinationKey: 'CAMPUS_URL', fields: [field('MEAL_NAME', 'Meal name'), field('VENDOR_NAME', 'Vendor name'), field('WEEK_LABEL', 'Week'), photo('VERIFIED_MEAL_PHOTO', 'Actual meal photograph'), field('VERIFIED_PRICE', 'Verified price', false), field('AVAILABILITY_NOTE', 'Availability', false)], checks: ['The meal, vendor, week and any price are current and visible on the linked campus menu.'] },
+  { name: 'Noticeboard', description: 'Create a readable campus notice with a prominent menu scan action.', eyebrow: 'CAMPUS MEALS', headline: 'Your campus.\nYour next meal.', supporting: 'Discover meals and place scheduled orders through your campus link.', cta: 'Scan to explore your campus menu', image: '', destinationKey: 'CAMPUS_URL', fields: [photo('APPROVED_CAMPUS_FOOD_PHOTO', 'Campus food photograph', false)], defaultFormat: 'a3', formats: ['a3', 'a4', 'feed', 'story'], checks: ['The campus ordering route is active and the intended posting location is approved.'] },
+  { name: 'Hostel Poster', description: 'Introduce meal planning in approved hostel spaces without implying room delivery.', eyebrow: 'CAMPUS LIFE', headline: 'Study break.\nMeal plans.', supporting: 'Explore meals and scheduled ordering options through your campus link.', cta: 'Scan to explore', image: '', destinationKey: 'CAMPUS_URL', fields: [field('HOSTEL_NAME', 'Hostel', false), field('VERIFIED_FULFILLMENT_NOTE', 'Fulfillment information', false), photo('APPROVED_HOSTEL_SCENE_PHOTO', 'Approved hostel scene')], defaultFormat: 'a4', formats: ['a4', 'a3', 'feed', 'story'], checks: ['The hostel image and posting location are approved; no unconfirmed room-delivery claim is implied.'] },
+  { name: 'Counter QR', description: 'Keep a large, flat scan target readable from the intended counter position.', eyebrow: '', headline: 'Your next meal\nstarts here.', supporting: '', cta: 'Scan to explore your campus menu', image: '', destinationKey: 'CAMPUS_URL', fields: [field('VERIFIED_VENDOR_NAME', 'Participating vendor', false), photo('APPROVED_VENDOR_LOGO', 'Vendor logo', false)], defaultFormat: 'a6', formats: ['a6', 'a4', 'feed', 'story'], checks: ['The physical scan proof was tested in its intended counter holder and viewing conditions.'] },
+  { name: 'Launch Event', description: 'Announce a confirmed event with accurate logistics and a dedicated event route.', eyebrow: 'CAMPUS LAUNCH EVENT', headline: 'Meet Meal Direct.', supporting: '{{EVENT_TITLE}}', cta: 'See event details', image: '', destinationKey: 'EVENT_URL', fields: [field('EVENT_TITLE', 'Event title'), field('CONFIRMED_DATE', 'Date'), field('CONFIRMED_TIME', 'Time'), field('TIME_ZONE_IF_NEEDED', 'Time zone', false), field('CONFIRMED_VENUE', 'Venue'), paragraph('APPROVED_EVENT_DETAILS', 'Event details', false), route('EVENT_URL', 'Event URL')], checks: ['The event, date, time and venue are confirmed; the event does not imply unconfirmed ordering availability.'] },
+  { name: 'Food Challenge', description: 'Start a food conversation with equal treatment of two approved images.', eyebrow: 'CAMPUS FOOD TALK', headline: 'Jollof or\nSwallow?', supporting: 'What are you choosing?', cta: 'Explore your campus menu', image: '', destinationKey: 'CAMPUS_URL', fields: [photo('APPROVED_JOLLOF_IMAGE', 'Jollof photograph'), photo('APPROVED_SWALLOW_IMAGE', 'Swallow photograph')], checks: ['These images have equal presentation and do not imply unconfirmed menu availability or poll results.'] },
+  { name: 'Campus Partner', description: 'Announce an approved collaboration with accurate partner identity and scope.', eyebrow: 'CAMPUS COLLABORATION', headline: '{{APPROVED_PARTNERSHIP_HEADLINE}}', supporting: '{{APPROVED_COLLABORATION_SCOPE}}', cta: 'Explore your campus link', image: '', destinationKey: 'CAMPUS_URL', fields: [field('PARTNER_NAME', 'Partner name'), photo('PARTNER_LOGO_APPROVED', 'Approved partner logo'), field('APPROVED_PARTNERSHIP_HEADLINE', 'Approved headline'), paragraph('APPROVED_COLLABORATION_SCOPE', 'Collaboration scope')], checks: ['Both parties approved the relationship, scope, names and logos; no broader university endorsement is implied.'] },
+  { name: 'Pocket Flyer', description: 'Create an A6 handout with separate front/back layouts, or a simplified one-sided A7.', eyebrow: '', headline: 'Campus meals.\nOne place\nto explore.', supporting: 'Discover meals and scheduled ordering options through your campus link.', cta: 'Scan to explore', image: '', destinationKey: 'CAMPUS_URL', fields: [photo('APPROVED_MEAL_PHOTO', 'Meal photograph', false)], duplex: true, defaultFormat: 'a6', formats: ['a6', 'a7', 'feed', 'story'] },
+  { name: 'Packaging Insert', description: 'Make future campus-menu discovery easy with a compact two-sided insert.', eyebrow: '', headline: 'Enjoy this meal.\nDiscover your next.', supporting: 'Explore meals and scheduled ordering options.', cta: 'Scan for your next pick', image: '', destinationKey: 'CAMPUS_URL', fields: [field('VERIFIED_SUPPORT_ROUTE', 'Order help', false)], duplex: true, defaultFormat: 'a7', formats: ['a7', 'a6', 'feed', 'story'], checks: ['The physical insert has been checked for trimming, duplex orientation, show-through and scan readability.'] },
 ];
 
-export const abbreviateCampus = (name: string) => {
-  const initials = name.match(/\b[A-Za-z0-9]/g)?.join('').toUpperCase() ?? '';
-  return initials.length >= 2 && initials.length <= 8 ? initials : name.slice(0, 6).toUpperCase();
-};
+export const FLYER_TEMPLATES: FlyerTemplate[] = definitions.map((item, index) => ({
+  ...item, id: `${String(index + 1).padStart(2, '0')}_${item.name.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`,
+  number: index + 1, category: index < 9 ? 'launch' : index < 16 ? 'marketplace' : index < 20 ? 'education' : 'activation',
+  formats: item.formats ?? ['feed', 'story', 'square', 'a4'], defaultFormat: item.defaultFormat ?? 'feed', checks: [...(item.checks ?? []), ...COMMON_CHECKS],
+}));
 
-export const campaignDestination = (slug?: string) => `https://user.mealdirectly.com/${encodeURIComponent(slug || '')}`;
+export function campaignVariants(template: FlyerTemplate): { value: string; label: string }[] {
+  if (template.number === 19) return [{ value: 'default', label: 'Request feedback' }, { value: 'quote', label: 'Approved student quote' }];
+  if (template.number === 25) return [{ value: 'default', label: 'Campus menu discovery' }, { value: 'poll', label: 'Verified poll' }];
+  if (template.number === 26) return [{ value: 'default', label: 'Campus discovery' }, { value: 'details', label: 'Partnership details' }];
+  return [];
+}
+
+export function campaignVariant(template: FlyerTemplate, mode?: string): FlyerTemplate {
+  if (template.number === 19 && mode === 'quote') return {
+    ...template, description: 'Publish an exact, approved student quotation with permission and accurate attribution.',
+    headline: '{{VERIFIED_STUDENT_QUOTE}}', supporting: '{{APPROVED_STUDENT_ATTRIBUTION}}', cta: 'Explore your campus menu', destinationKey: 'CAMPUS_URL',
+    fields: [paragraph('VERIFIED_STUDENT_QUOTE', 'Exact approved quote'), field('APPROVED_STUDENT_ATTRIBUTION', 'Approved attribution'), photo('APPROVED_STUDENT_PHOTO', 'Student portrait', false)],
+    checks: ['The student approved this exact quotation, attribution and any portrait for publication; no words have been fabricated or shortened without approval.', ...COMMON_CHECKS],
+  };
+  if (template.number === 25 && mode === 'poll') return { ...template, cta: 'Scan to vote', destinationKey: 'VERIFIED_POLL_URL', fields: [...template.fields, route('VERIFIED_POLL_URL', 'Verified poll URL')], checks: ['This destination contains the approved, working food poll; no unsupported prize or result is implied.', ...template.checks] };
+  if (template.number === 26 && mode === 'details') return { ...template, cta: 'Read about the collaboration', destinationKey: 'PARTNERSHIP_DETAILS_URL', fields: [...template.fields, route('PARTNERSHIP_DETAILS_URL', 'Partnership details URL')] };
+  return template;
+}
+
+export function campaignDestination(slug?: string) { return slug?.trim() ? `https://user.mealdirectly.com/${encodeURIComponent(slug.trim())}` : ''; }
+export function isSafeCampaignUrl(value: string) {
+  if (!value || /[\s{}]/.test(value)) return false;
+  try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password && url.hostname.includes('.') && !['localhost', '127.0.0.1', '0.0.0.0'].includes(url.hostname); } catch { return false; }
+}
+export function createCampaignDraft(template: FlyerTemplate, campus: { name: string; slug?: string }): CampaignDraft {
+  return { version: 2, universityName: campus.name, campusName: '', destination: template.destinationKey === 'CAMPUS_URL' ? campaignDestination(campus.slug) : '', headline: template.headline, supporting: template.supporting, cta: template.cta, values: {}, checks: {} };
+}
+export function campaignValues(template: FlyerTemplate, draft: CampaignDraft) {
+  return { ...draft.values, UNIVERSITY_NAME: draft.universityName, CAMPUS_NAME: draft.campusName || draft.universityName, CAMPUS_URL: draft.destination, [template.destinationKey]: draft.destination };
+}
+export function interpolateCampaignCopy(text: string, values: Record<string, string>) {
+  return text.replace(/\{\{([A-Z0-9_]+)\}\}/g, (token, key: string) => values[key]?.trim() || token);
+}
+export function validateCampaignDraft(template: FlyerTemplate, draft: CampaignDraft): string[] {
+  const errors: string[] = [];
+  if (!draft.universityName.trim()) errors.push('Add the approved university name.');
+  if (!draft.headline.trim()) errors.push('Add a headline.');
+  if (!draft.cta.trim()) errors.push('Add a call to action.');
+  if (!isSafeCampaignUrl(draft.destination.trim())) errors.push('Add a valid public HTTP or HTTPS destination.');
+  for (const f of template.fields) {
+    const value = f.key === template.destinationKey ? draft.destination.trim() : draft.values[f.key]?.trim();
+    if (f.required && !value) errors.push(`Add ${f.label.toLowerCase()}.`);
+    else if (value && f.type === 'url' && !isSafeCampaignUrl(value)) errors.push(`Check ${f.label.toLowerCase()}.`);
+    else if (value && f.type === 'image' && !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\s]+$/.test(value)) errors.push(`Upload a valid PNG, JPEG or WebP for ${f.label.toLowerCase()}.`);
+  }
+  const visibleCopy = [draft.universityName, draft.campusName, draft.headline, draft.supporting, draft.cta, draft.values.BACK_HEADLINE ?? '', draft.values.BACK_SUPPORTING ?? '', ...template.fields.filter((f) => f.type === 'text' || f.type === 'textarea').map((f) => draft.values[f.key] ?? '')].join('\n');
+  if (/\{\{[^}]+\}\}/.test(interpolateCampaignCopy(visibleCopy, campaignValues(template, draft)))) errors.push('Fill every template field still shown in the artwork.');
+  for (const check of template.checks) if (draft.checks[check] !== true) errors.push(check);
+  return [...new Set(errors)];
+}

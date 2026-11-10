@@ -63,3 +63,7 @@
 ## Next Actions
 - Completed: lint and typecheck pass. Targeted Vitest runs passed (55 reported tests across all 12 test files); the aggregate runner did not return a final summary within the terminal time limit. The local sign-in smoke test confirmed programmatic Email Address/Password labels and the password reveal toggle.
 - Remaining: live-test authenticated pages with a real admin session and seeded API data.
+
+## Campaign Studio update — 10 November 2026
+
+The current campaign task is complete. See `campaign-studio-working-memory.md` for the 28-brief implementation, touched files, verification and remaining live-session/print limits. Existing authentication remains in place; drafts are device-local and no deployment was performed.
