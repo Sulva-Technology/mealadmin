@@ -38,3 +38,12 @@ Updated the existing authenticated admin Campaign Studio using the supplied Nove
 - No authenticated live-campus session was available; the browser checks used fixture campus data. Existing unauthenticated route redirect was verified earlier.
 - Production build, physical phone scanning, printer proofing and color-profile conversion were not performed.
 - Drafts are local to the device. Shared storage and audit history require a supported backend contract.
+
+## Selected visual reference — completed 12 November 2026
+
+- The user supplied a 28-panel campaign image and requested completion of that visual direction.
+- Added `lib/campaign-art-direction.ts`, a preserved reference sheet, three illustrative generated portraits, reference thumbnails and updated default headlines. Existing brief IDs, user drafts and required-fact checks are preserved.
+- Updated the SVG renderer to pale mint backgrounds, black/green headlines with optional green highlights, right-side imagery, and green CTA buttons next to the generated QR. Print reverse sides remain available.
+- Fixed headline width estimation and a CTA/URL overlap found in visual checks.
+- Verification: 16 tests, typecheck and targeted lint passed; 112 default layouts plus long names, filled event/quote details, reverse sides and mobile checks passed. The new PNG/SVG exports were inspected, and the PNG QR decoded correctly.
+- See `docs/campaign-art-direction.md` for asset provenance, scope and verification. Current preview: `output/playwright/reference-studio.png`; exported proof: `output/playwright/reference-launch-export.png`.

@@ -67,3 +67,5 @@
 ## Campaign Studio update — 10 November 2026
 
 The current campaign task is complete. See `campaign-studio-working-memory.md` for the 28-brief implementation, touched files, verification and remaining live-session/print limits. Existing authentication remains in place; drafts are device-local and no deployment was performed.
+
+The user's selected contact-sheet visual direction was implemented on 12 November 2026. See `docs/campaign-art-direction.md` and the latest section of `campaign-studio-working-memory.md` for the reference mapping, generated assets and passed visual/export checks.
